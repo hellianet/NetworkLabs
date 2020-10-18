@@ -3,7 +3,16 @@ import java.net.InetAddress;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-        Client cl = new Client("s1200.jpg", 1555, InetAddress.getLocalHost());
-        cl.startWorkWithClient();
+        InetAddress inetAddress = InetAddress.getByName(args[0]);
+        try {
+            int port = Integer.parseInt(args[1]);
+            String path = args[2];
+            Client cl = new Client(path, port, inetAddress);
+            cl.startWorkWithClient();
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
+        }
+
     }
+
 }
