@@ -6,6 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 public class HelpForServer  extends Thread{
     private final Socket socket;
@@ -47,13 +50,16 @@ public class HelpForServer  extends Thread{
             long nowTime = System.currentTimeMillis();
             long timeAfterTransmission = 0;
             long currentNumber = 0;
+            MessageDigest md = MessageDigest.getInstance("MD5");
 
             while(countOfBytes < sizeFile){
                 int readBytes = readingFromSocket.read(buf);
+                md.update(buf);
                 currentNumber += readBytes;
                 countOfBytes += readBytes;
                 timeAfterTransmission = System.currentTimeMillis();
                 if((timeAfterTransmission - nowTime) >= SPLIT_TIME){
+
                     speed = (currentNumber * 1000) / ((timeAfterTransmission - nowTime));
                     speedForAverage += speed;
                     System.out.println("Instant speed = " + speed);
@@ -73,13 +79,15 @@ public class HelpForServer  extends Thread{
                 System.out.println("Average speed = " + speedForAverage/iteration);
             }
 
-             if(sizeFile != countOfBytes){
-                 writeToSocket.writeInt(FAILURE);
-             }else{
+            String hash_sum = readingFromSocket.readUTF();
+
+             if((sizeFile == countOfBytes) && (hash_sum.equals(new String(md.digest(), "UTF-8")))){
                  writeToSocket.writeInt(SUCCESS);
+             }else{
+                 writeToSocket.writeInt(FAILURE);
              }
 
-        } catch (IOException e) {
+        } catch (IOException | NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
     }

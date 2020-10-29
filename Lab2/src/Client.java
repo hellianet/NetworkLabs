@@ -3,6 +3,8 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class Client {
     private final Socket clientSocket;
@@ -34,19 +36,24 @@ public class Client {
             writeToSocket.writeLong(fileSize);
             long countOfBytes = 0;
             byte[] buf = new byte[BUFFER_SIZE];
+            MessageDigest md = MessageDigest.getInstance("MD5");
             while (countOfBytes < fileSize) {
                 int a = reader.read(buf);
                 countOfBytes += a;
                 writeToSocket.write(buf, 0, a);
-
+                md.update(buf);
             }
+            String str = new String(md.digest(),"UTF-8");
+            Thread.sleep(100);
+            writeToSocket.writeUTF(str);
+
             if (readingFromSocket.readInt() == SUCCESS) {
                 System.out.println("Data transfer was successful!");
             } else {
                 System.out.println("Data transfer failed!");
             }
         }
-        catch (IOException e) {
+        catch (IOException | NoSuchAlgorithmException | InterruptedException e) {
             e.printStackTrace();
         }
     }
