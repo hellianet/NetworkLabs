@@ -3,7 +3,11 @@ package nodes;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChatNode {
@@ -17,10 +21,6 @@ public class ChatNode {
     Neighbour alternate;
     final List<Neighbour> neighboursList = new CopyOnWriteArrayList<>();
     final List<String> confirmedMessages = new ArrayList<>();
-    final Map<String, Long> receivedMessages = new HashMap<>();
-
-    private final int DELIVERY_DELAY = 10000;
-    private final int MASSAGE_SAVE_TIME = DELIVERY_DELAY * 5;
 
     DataSender dataSender = new DataSender(this);
     private DataReceiver dataReceiver = new DataReceiver(this);
@@ -41,14 +41,6 @@ public class ChatNode {
         this.inetAddress = inetAddress;
     }
 
-    public List<String> getConfirmedMessages() {
-        return confirmedMessages;
-    }
-
-    public List<Neighbour> getNeighboursList() {
-        return neighboursList;
-    }
-
     public void startChat() {
         try {
             nodeSocket = new DatagramSocket(this.port);
@@ -58,12 +50,10 @@ public class ChatNode {
                 dataSender.sendAlternate(UUID.randomUUID().toString(), inetAddress, neighbourPort, inetAddress, neighbourPort);
                 alternate = new Neighbour(inetAddress, neighbourPort, System.currentTimeMillis());
             }
-            startNotifyNeighboursAboutLiveStatus();
-            checkingReceivedMessages();
-            checkingNeighbours();
+            startNotifyAndCheckNeighbours();
             dataSender.start();
             dataReceiver.start();
-            Scanner scanner = new Scanner(System.in);
+            Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8);
             while (scanner.hasNextLine()) {
                 String text = scanner.nextLine();
                 dataSender.sendTextToAllNeighbours(text);
@@ -78,10 +68,16 @@ public class ChatNode {
 
     }
 
-    private void startNotifyNeighboursAboutLiveStatus() {
+    private void startNotifyAndCheckNeighbours() {
         new Thread(() -> {
+            long lastCheckingNeighboursTime = System.currentTimeMillis();
             while (!Thread.currentThread().isInterrupted()) {
                 try {
+                    long nowTime = System.currentTimeMillis();
+                    if (nowTime - lastCheckingNeighboursTime > 1000) {
+                        helpForCheckingNeighbours();
+                        lastCheckingNeighboursTime = nowTime;
+                    }
                     dataSender.shareAliveStatusToAllNeighbours();
                     Thread.sleep(100);
                 } catch (IOException | InterruptedException e) {
@@ -91,41 +87,12 @@ public class ChatNode {
         }).start();
     }
 
-    private void checkingReceivedMessages() {
-        new Thread(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    Thread.sleep(DELIVERY_DELAY);
-                    synchronized (receivedMessages) {
-                        receivedMessages.entrySet().removeIf(msg -> System.currentTimeMillis() - msg.getValue() > MASSAGE_SAVE_TIME);
-                    }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
-    }
-
-    private void checkingNeighbours() {
-        new Thread(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    helpForCheckingNeighbours();
-                    Thread.sleep(1000);
-                } catch (InterruptedException | IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-        }).start();
-    }
-
 
     private void helpForCheckingNeighbours() throws IOException {
         boolean WasNeighbourChange = false;
         for (Neighbour neighbour : neighboursList) {
-            int TIMEOUT = 5000;
-            if (System.currentTimeMillis() - neighbour.getLastTime() > TIMEOUT) {
+            int timeout = 5000;
+            if (System.currentTimeMillis() - neighbour.getLastTime() > timeout) {
 
                 if (neighbour.equals(alternate)) {
                     WasNeighbourChange = true;

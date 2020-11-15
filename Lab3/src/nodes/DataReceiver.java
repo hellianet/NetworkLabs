@@ -7,11 +7,15 @@ import messages.TextMessage;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
 class DataReceiver extends Thread {
+    private static final long MASSAGE_SAVE_TIME = 10000;
     private final ChatNode chatNode;
+    private final Map<String, Long> receivedMessages = new HashMap<>();
 
     public DataReceiver(ChatNode chatNode) {
         this.chatNode = chatNode;
@@ -83,23 +87,21 @@ class DataReceiver extends Thread {
     }
 
     private void checkingTextDelivery(Message message, InetAddress inetAddress, int port) throws IOException {
-        synchronized (chatNode.receivedMessages) {
-            if (!chatNode.receivedMessages.containsKey(message.getMessageID())) {
-                System.out.println(((TextMessage) message).getName() + ":" + ((TextMessage) message).getContent());
-                chatNode.receivedMessages.put(message.getMessageID(), System.currentTimeMillis());
-                chatNode.dataSender.sendTextNext((TextMessage) message, inetAddress, port);
-            }
+        receivedMessages.entrySet().removeIf(msg -> System.currentTimeMillis() - msg.getValue() > MASSAGE_SAVE_TIME);
+        if (!receivedMessages.containsKey(message.getMessageID())) {
+            System.out.println(((TextMessage) message).getName() + ":" + ((TextMessage) message).getContent());
+            receivedMessages.put(message.getMessageID(), System.currentTimeMillis());
+            chatNode.dataSender.sendTextNext((TextMessage) message, inetAddress, port);
         }
     }
 
 
     private void checkingConnectionDelivery(Message message, InetAddress inetAddress, int port) {
-        synchronized (chatNode.receivedMessages) {
-            if (!chatNode.receivedMessages.containsKey(message.getMessageID())) {
-                Neighbour neighbour = new Neighbour(inetAddress, port, System.currentTimeMillis());
-                chatNode.neighboursList.add(neighbour);
-                chatNode.receivedMessages.put(message.getMessageID(), System.currentTimeMillis());
-            }
+        receivedMessages.entrySet().removeIf(msg -> System.currentTimeMillis() - msg.getValue() > MASSAGE_SAVE_TIME);
+        if (!receivedMessages.containsKey(message.getMessageID())) {
+            Neighbour neighbour = new Neighbour(inetAddress, port, System.currentTimeMillis());
+            chatNode.neighboursList.add(neighbour);
+            receivedMessages.put(message.getMessageID(), System.currentTimeMillis());
         }
     }
 

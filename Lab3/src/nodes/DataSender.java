@@ -26,13 +26,18 @@ class DataSender extends Thread {
                 synchronized (sentMessages) {
                     sentMessages.entrySet().removeIf(msg -> checkingDelivery(msg.getKey()) ||
                             !chatNode.neighboursList.contains(new Neighbour(msg.getValue().getAddress(), msg.getValue().getPort())));
-                    sentMessages.values().forEach(datagramPacket -> {
+                    for (DatagramPacket datagramPacket : sentMessages.values()) {
                         try {
+                            if (chatNode.nodeSocket == null || chatNode.nodeSocket.isClosed()) {
+                                Thread.currentThread().interrupt();
+                                System.err.println("Socket is closed");
+                                return;
+                            }
                             chatNode.nodeSocket.send(datagramPacket);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                    });
+                    }
                 }
                 Thread.sleep(100);
             } catch (InterruptedException e) {
