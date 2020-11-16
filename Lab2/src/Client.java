@@ -23,8 +23,13 @@ public class Client {
         this.port = port;
         this.inetAddress = inetAddress;
         clientSocket = new Socket(inetAddress, port);
-        writeToSocket = new DataOutputStream(clientSocket.getOutputStream());
-        readingFromSocket = new DataInputStream(clientSocket.getInputStream());
+        try {
+            writeToSocket = new DataOutputStream(clientSocket.getOutputStream());
+            readingFromSocket = new DataInputStream(clientSocket.getInputStream());
+        } catch (IOException e) {
+            clientSocket.close();
+            throw e;
+        }
         reader = Files.newInputStream(Paths.get(path));
     }
 
