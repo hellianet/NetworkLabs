@@ -1,18 +1,21 @@
 package nodes;
 
-import messages.*;
+import messages.AliveMessage;
+import messages.AlternateMessage;
+import messages.ConfirmMessage;
+import messages.TextMessage;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 class DataSender extends Thread {
 
     private final ChatNode chatNode;
-    private final Map<String, DatagramPacket> sentMessages = new HashMap<>();
+    private final Map<String, DatagramPacket> sentMessages = new ConcurrentHashMap<>();
 
     public DataSender(ChatNode chatNode) {
         this.chatNode = chatNode;
@@ -23,20 +26,18 @@ class DataSender extends Thread {
 
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                synchronized (sentMessages) {
-                    sentMessages.entrySet().removeIf(msg -> checkingDelivery(msg.getKey()) ||
-                            !chatNode.neighboursList.contains(new Neighbour(msg.getValue().getAddress(), msg.getValue().getPort())));
-                    for (DatagramPacket datagramPacket : sentMessages.values()) {
-                        try {
-                            if (chatNode.nodeSocket == null || chatNode.nodeSocket.isClosed()) {
-                                Thread.currentThread().interrupt();
-                                System.err.println("Socket is closed");
-                                return;
-                            }
-                            chatNode.nodeSocket.send(datagramPacket);
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                sentMessages.entrySet().removeIf(msg -> checkingDelivery(msg.getKey()) ||
+                        !chatNode.neighboursList.contains(new Neighbour(msg.getValue().getAddress(), msg.getValue().getPort())));
+                for (DatagramPacket datagramPacket : sentMessages.values()) {
+                    try {
+                        if (chatNode.nodeSocket == null || chatNode.nodeSocket.isClosed()) {
+                            Thread.currentThread().interrupt();
+                            System.err.println("Socket is closed");
+                            return;
                         }
+                        chatNode.nodeSocket.send(datagramPacket);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 }
                 Thread.sleep(100);
@@ -58,9 +59,7 @@ class DataSender extends Thread {
     }
 
     private void sendMessage(String messageID, DatagramPacket datagramPacket) {
-        synchronized (sentMessages) {
-            sentMessages.put(messageID, datagramPacket);
-        }
+        sentMessages.put(messageID, datagramPacket);
     }
 
 
@@ -93,10 +92,6 @@ class DataSender extends Thread {
         sendMessage(messageID, new DatagramPacket(alternateMsg, alternateMsg.length, distIp, distPort));
     }
 
-    void sendConnectMessage(String messageID, InetAddress ip, int port) throws IOException {
-        byte[] connectMsg = SerializationUtils.serialize(new ConnectMessage(messageID));
-        sendMessage(messageID, new DatagramPacket(connectMsg, connectMsg.length, ip, port));
-    }
 
     void sendConfirmMessage(String messageID, InetAddress ip, int port) throws IOException {
         byte[] confirmAnswer = SerializationUtils.serialize(new ConfirmMessage(messageID));

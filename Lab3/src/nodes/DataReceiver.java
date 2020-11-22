@@ -28,15 +28,15 @@ class DataReceiver extends Thread {
             while (!isInterrupted()) {
                 int size = 1024;
                 DatagramPacket packet = new DatagramPacket(new byte[size], size);
+                if (chatNode.nodeSocket == null || chatNode.nodeSocket.isClosed()) {
+                    Thread.currentThread().interrupt();
+                    System.err.println("Socket is closed");
+                    return;
+                }
                 chatNode.nodeSocket.receive(packet);
                 if (random.nextInt(100) > chatNode.lossPercent) {
                     Message message = SerializationUtils.deserialize(packet.getData());
                     switch (message.getType()) {
-                        case CONNECT:
-                            checkingConnectionDelivery(message, packet.getAddress(), packet.getPort());
-                            shareAltNeighbour(packet.getAddress(), packet.getPort());
-                            chatNode.dataSender.sendConfirmMessage(message.getMessageID(), packet.getAddress(), packet.getPort());
-                            break;
 
                         case ALTERNATE:
                             AlternateMessage alternateMessage = (AlternateMessage) message;
@@ -45,6 +45,11 @@ class DataReceiver extends Thread {
                             break;
 
                         case ALIVE:
+                            Neighbour neighbour = new Neighbour(packet.getAddress(), packet.getPort());
+                            if (!chatNode.neighboursList.contains(neighbour)) {
+                                addNeighbour(packet.getAddress(), packet.getPort());
+                                shareAltNeighbour(packet.getAddress(), packet.getPort());
+                            }
                             updateNeighbourAliveTime(packet.getAddress(), packet.getPort());
                             chatNode.dataSender.sendConfirmMessage(message.getMessageID(), packet.getAddress(), packet.getPort());
                             break;
@@ -66,15 +71,11 @@ class DataReceiver extends Thread {
     }
 
     private void shareAltNeighbour(InetAddress inetAddress, int port) throws IOException {
-        if (null == chatNode.alternate) {
-            if (chatNode.neighboursList.size() > 0) {
-                chatNode.alternate = chatNode.neighboursList.get(0);
-                chatNode.dataSender.sendAlternateToAllNeighbours(chatNode.alternate.getIp(), chatNode.alternate.getPort());
-            }
-        } else {
-            if (!chatNode.alternate.equals(new Neighbour(inetAddress, port))) {
-                chatNode.dataSender.sendAlternate(UUID.randomUUID().toString(), chatNode.alternate.getIp(), chatNode.alternate.getPort(), inetAddress, port);
-            }
+        if (null == chatNode.alternate && chatNode.neighboursList.size() > 0) {
+            chatNode.alternate = chatNode.neighboursList.get(0);
+            chatNode.dataSender.sendAlternateToAllNeighbours(chatNode.alternate.getIp(), chatNode.alternate.getPort());
+        } else if (chatNode.alternate != null && !chatNode.alternate.equals(new Neighbour(inetAddress, port))) {
+            chatNode.dataSender.sendAlternate(UUID.randomUUID().toString(), chatNode.alternate.getIp(), chatNode.alternate.getPort(), inetAddress, port);
         }
     }
 
@@ -96,13 +97,9 @@ class DataReceiver extends Thread {
     }
 
 
-    private void checkingConnectionDelivery(Message message, InetAddress inetAddress, int port) {
-        receivedMessages.entrySet().removeIf(msg -> System.currentTimeMillis() - msg.getValue() > MASSAGE_SAVE_TIME);
-        if (!receivedMessages.containsKey(message.getMessageID())) {
-            Neighbour neighbour = new Neighbour(inetAddress, port, System.currentTimeMillis());
-            chatNode.neighboursList.add(neighbour);
-            receivedMessages.put(message.getMessageID(), System.currentTimeMillis());
-        }
+    private void addNeighbour(InetAddress inetAddress, int port) {
+        Neighbour neighbour = new Neighbour(inetAddress, port, System.currentTimeMillis());
+        chatNode.neighboursList.add(neighbour);
     }
 
     private void setAlternate(InetAddress senderIp, int senderPort, InetAddress alternateIp, int alternatePort) {

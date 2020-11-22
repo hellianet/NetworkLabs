@@ -11,7 +11,6 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChatNode {
-
     String nodeName;
     int lossPercent;
     private int port;
@@ -22,8 +21,7 @@ public class ChatNode {
     final List<Neighbour> neighboursList = new CopyOnWriteArrayList<>();
     final List<String> confirmedMessages = new ArrayList<>();
 
-    DataSender dataSender = new DataSender(this);
-    private DataReceiver dataReceiver = new DataReceiver(this);
+    DataSender dataSender;
 
     public ChatNode(String nodeName, int lossPercent, int port) {
         this.nodeName = nodeName;
@@ -43,10 +41,11 @@ public class ChatNode {
 
     public void startChat() {
         try {
+            dataSender = new DataSender(this);
+            DataReceiver dataReceiver = new DataReceiver(this);
             nodeSocket = new DatagramSocket(this.port);
             if (neighbourPort != -1 && inetAddress != null) {
                 neighboursList.add(new Neighbour(inetAddress, neighbourPort, System.currentTimeMillis()));
-                dataSender.sendConnectMessage(UUID.randomUUID().toString(), inetAddress, neighbourPort);
                 dataSender.sendAlternate(UUID.randomUUID().toString(), inetAddress, neighbourPort, inetAddress, neighbourPort);
                 alternate = new Neighbour(inetAddress, neighbourPort, System.currentTimeMillis());
             }
@@ -103,7 +102,6 @@ public class ChatNode {
                 if (newNeighbour != null) {
                     newNeighbour.setLastTime(System.currentTimeMillis());
                     neighboursList.add(newNeighbour);
-                    dataSender.sendConnectMessage(UUID.randomUUID().toString(), newNeighbour.getIp(), newNeighbour.getPort());
                 }
                 neighboursList.remove(neighbour);
             }
