@@ -20,7 +20,7 @@ public class Main extends Application {
         int height = 400;
         stage.setWidth(width);
         stage.setHeight(height);
-        Game game = new Game(25);
+        Game game = new Game();
         MenuView v = new MenuView(stage);
         v.show();
         Controller con = new Controller(v, game);

@@ -42,7 +42,7 @@ public class View implements Observer {
         userList = new HashMap<>();
         fruit = new ArrayList<>();
         labels = new HashMap<>();
-        rects = new Rectangle[game.sizeField()][game.sizeField()];
+        rects = new Rectangle[game.widthField()][game.heightField()];
         exitButton = new ImageView(new Image("exitButton.png", 180, 45, false, false));
     }
 
@@ -63,18 +63,18 @@ public class View implements Observer {
 
 
     public void game() {
-        int width = 600;
-        int height = 620;
+        int sizeCell = 40;
+        int width = sizeCell * game.widthField();
+        int sizeLabel = 20;
+        int height = sizeCell * game.heightField() + sizeLabel;
         stage.setWidth(width);
         stage.setHeight(height);
         GridPane gridpane = new GridPane();
         GridPane gp = new GridPane();
         labelsGrid = new GridPane();
-        double rectWidth = (double) width / game.sizeField();
-        double rectHeight = (double) width / game.sizeField();
-        for (int i = 0; i < game.sizeField(); ++i) {
-            for (int k = 0; k < game.sizeField(); ++k) {
-                Rectangle rectangle = new Rectangle(rectWidth, rectHeight, Color.WHITE);
+        for (int i = 0; i < game.widthField(); ++i) {
+            for (int k = 0; k < game.heightField(); ++k) {
+                Rectangle rectangle = new Rectangle(sizeCell, sizeCell, Color.WHITE);
                 gridpane.add(rectangle, i, k);
                 rects[i][k] = rectangle;
             }
@@ -161,7 +161,7 @@ public class View implements Observer {
 
 
     public void addSnakeCoordinate(Player pl, Color cl) {
-        if (game.getHeadSnake(pl).getX() < game.sizeField() && game.getHeadSnake(pl).getX() >= 0 && game.getHeadSnake(pl).getY() < game.sizeField() && game.getHeadSnake(pl).getY() >= 0) {
+        if (game.getHeadSnake(pl).getX() < game.widthField() && game.getHeadSnake(pl).getX() >= 0 && game.getHeadSnake(pl).getY() < game.heightField() && game.getHeadSnake(pl).getY() >= 0) {
             rects[game.getHeadSnake(pl).getX()][game.getHeadSnake(pl).getY()].setFill(cl);
             rects[game.getTailSnake(pl).getX()][game.getTailSnake(pl).getY()].setFill(cl);
             snakeTail.put(pl, game.getTailSnake(pl));

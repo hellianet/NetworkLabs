@@ -4,7 +4,9 @@ public class Config {
 
     private int foodStatic = 1;
     private int foodPerPlayer = 2;
-    private int percentChanceOfTurningIntoFood = 50;
+    private int heightField = 16;
+    private int widthField = 15;
+    private double percentChanceOfTurningIntoFood = 0.5;
 
     public Config() {
 
@@ -18,7 +20,15 @@ public class Config {
         return foodStatic;
     }
 
-    public int getPercentChanceOfTurningIntoFood() {
+    public double getPercentChanceOfTurningIntoFood() {
         return percentChanceOfTurningIntoFood;
+    }
+
+    public int getHeightField() {
+        return heightField;
+    }
+
+    public int getWidthField() {
+        return widthField;
     }
 }

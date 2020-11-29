@@ -2,20 +2,26 @@ package sample;
 
 public class Field {
     private int numOfEmptyEl;
-    private int sizeField;
+    private int widthField;
+    private int heightField;
     private Status[] matrix;
 
-    public Field(int size) {
-        sizeField = size;
-        numOfEmptyEl = size * size;
-        matrix = new Status[size * size];
-        for (int i = 0; i < size * size; ++i) {
+    public Field(int width, int height) {
+        widthField = width;
+        heightField = height;
+        numOfEmptyEl = width * height;
+        matrix = new Status[width * height];
+        for (int i = 0; i < width * height; ++i) {
             matrix[i] = Status.EMPTY;
         }
     }
 
-    public int sizeField() {
-        return sizeField;
+    public int getWidthField() {
+        return widthField;
+    }
+
+    public int getHeightField() {
+        return heightField;
     }
 
     public int numOfEmptyElField() {
@@ -23,20 +29,20 @@ public class Field {
     }
 
     public int countOfElField() {
-        return sizeField * sizeField;
+        return widthField * heightField;
     }
 
     public Status getField(int x, int y) {
-        return matrix[y * sizeField + x];
+        return matrix[y * widthField + x];
     }
 
     public void addCoordinates(int x, int y, Status status) {
-        matrix[y * sizeField + x] = status;
+        matrix[y * widthField + x] = status;
         numOfEmptyEl--;
     }
 
     public void delCoordinates(int x, int y) {
-        matrix[y * sizeField + x] = Status.EMPTY;
+        matrix[y * widthField + x] = Status.EMPTY;
         numOfEmptyEl++;
     }
 

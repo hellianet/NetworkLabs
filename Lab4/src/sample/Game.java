@@ -15,11 +15,10 @@ public class Game implements Observable {
     private HashMap<Player, Boolean> snakeIsFruit;
     private ArrayList<Player> isWin;
     private ArrayList<Player> isLose;
-    private int sizeField;
 
-    public Game(int size) {
-        sizeField = size;
-        field = new Field(size);
+    public Game() {
+        config = new Config();
+        field = new Field(config.getWidthField(), config.getHeightField());
         userList = new HashMap<>();
         observers = new ArrayList<>();
         fruit = new ArrayList<>();
@@ -27,16 +26,15 @@ public class Game implements Observable {
         snakeIsFruit = new HashMap<>();
         isWin = new ArrayList<>();
         isLose = new ArrayList<>();
-        config = new Config();
     }
 
     public Cell getCoordinate(Status status) {
         Random random = new Random();
-        int y = random.nextInt(field.sizeField());
-        int x = random.nextInt(field.sizeField());
+        int y = random.nextInt(field.getHeightField());
+        int x = random.nextInt(field.getWidthField());
         while (field.getField(x, y) != Status.EMPTY) {
-            y = random.nextInt(field.sizeField());
-            x = random.nextInt(field.sizeField());
+            y = random.nextInt(field.getHeightField());
+            x = random.nextInt(field.getWidthField());
         }
         Cell k = new Cell(x, y);
         field.addCoordinates(x, y, status);
@@ -68,7 +66,7 @@ public class Game implements Observable {
 
     public Player logIn(String name) {
         Player pl = new Player(name);
-        Snake sn = new Snake(getCoordinate(Status.SNAKE), tail, sizeField, sizeField);
+        Snake sn = new Snake(getCoordinate(Status.SNAKE), tail, config.getWidthField(), config.getHeightField());
         userList.put(pl, sn);
         makeFruit();
         return pl;
@@ -102,8 +100,12 @@ public class Game implements Observable {
         return isLose;
     }
 
-    public int sizeField() {
-        return field.sizeField();
+    public int widthField() {
+        return field.getWidthField();
+    }
+
+    public int heightField() {
+        return field.getHeightField();
     }
 
     public Cell getHeadSnake(Player player) {
@@ -150,11 +152,6 @@ public class Game implements Observable {
         }
     }
 
-//    public boolean snakeIsAlive(Player player){
-//        Cell k = userList.get(player).getHead();
-//        return k.getY() >= 0 && k.getY() < field.sizeField() && k.getX() >= 0 && k.getX() < field.sizeField();
-//    }
-
     public boolean snakeAteFruit(Cell head) {
         for (Cell cell : fruit) {
             if ((head.getX() == cell.getX()) && (head.getY() == cell.getY())) {
@@ -181,8 +178,12 @@ public class Game implements Observable {
         }
     }
 
-    public void turningSnake(Player player, Status status) {
+    public void turningSnake(Player player) {
         for (int i = 1; i < userList.get(player).sizeSnake(); ++i) {
+            Status status = Status.EMPTY;
+            if (Math.random() >= config.getPercentChanceOfTurningIntoFood()) {
+                status = Status.FRUIT;
+            }
             int x = userList.get(player).getSnakeCoordinate(i).getX();
             int y = userList.get(player).getSnakeCoordinate(i).getY();
             field.delCoordinates(x, y);
@@ -218,13 +219,13 @@ public class Game implements Observable {
         checkMove(player);
     }
 
-    public void deletePlayer(Player pl, Status status) {
-        turningSnake(pl, status);
+    public void deletePlayer(Player pl) {
+        turningSnake(pl);
         userList.remove(pl);
     }
 
-    public void lose(Player pl, Status status) {
-        deletePlayer(pl, status);
+    public void lose(Player pl) {
+        deletePlayer(pl);
     }
 
     public void checkMove(Player player) {
@@ -232,11 +233,7 @@ public class Game implements Observable {
         int x = head.getX();
         int y = head.getY();
         if ((snakeCrashesIntoItself(head, player) || crashIntoAnotherSnake(head, player))) {
-            if (config.getPercentChanceOfTurningIntoFood() >= 50) {
-                lose(player, Status.FRUIT);
-            } else {
-                lose(player, Status.EMPTY);
-            }
+            lose(player);
             isLose.add(player);
             notifyObservers();
             return;
