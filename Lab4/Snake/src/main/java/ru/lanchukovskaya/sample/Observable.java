@@ -1,4 +1,4 @@
-package sample;
+package ru.lanchukovskaya.sample;
 
 public interface Observable {
     void registerObserver(Observer o);

@@ -1,4 +1,4 @@
-package sample;
+package ru.lanchukovskaya.sample;
 
 
 import java.util.*;
@@ -9,7 +9,6 @@ public class Game implements Observable {
     private ArrayList<Observer> observers;
     private ArrayList<Cell> emptySnake;
     private Field field;
-    private Cell tail;
     private Config config;
     private HashMap<Player, Boolean> isEat;
     private HashMap<Player, Boolean> snakeIsFruit;
@@ -38,35 +37,45 @@ public class Game implements Observable {
         }
         Cell k = new Cell(x, y);
         field.addCoordinates(x, y, status);
-        if (status == Status.SNAKE) {
-            tail = getFirstTail(k);
-        }
         return k;
     }
 
     public Cell getFirstTail(Cell head) {
         int x = head.getX();
         int y = head.getY();
+        int newXMinus = field.checkingCoordinateX(--x);
+        int newXPlus = field.checkingCoordinateX(++x);
+        int newYMinus = field.checkingCoordinateY(--y);
+        int newYPlus = field.checkingCoordinateY(++y);
         Cell tail = null;
-        if (field.getField(++x, y) == Status.EMPTY) {
-            tail = new Cell(++x, y);
-            field.addCoordinates(++x, y, Status.SNAKE);
-        } else if (field.getField(--x, y) == Status.EMPTY) {
-            tail = new Cell(--x, y);
-            field.addCoordinates(--x, y, Status.SNAKE);
-        } else if (field.getField(x, ++y) == Status.EMPTY) {
-            tail = new Cell(x, ++y);
-            field.addCoordinates(x, ++y, Status.SNAKE);
-        } else if (field.getField(x, --y) == Status.EMPTY) {
-            tail = new Cell(x, --y);
-            field.addCoordinates(x, --y, Status.SNAKE);
+        if (field.getField(newXPlus, y) == Status.EMPTY) {
+            tail = new Cell(newXPlus, y);
+            field.addCoordinates(newXPlus, y, Status.SNAKE);
+        } else if (field.getField(newXMinus, y) == Status.EMPTY) {
+            tail = new Cell(newXMinus, y);
+            field.addCoordinates(newXMinus, y, Status.SNAKE);
+        } else if (field.getField(x, newYPlus) == Status.EMPTY) {
+            tail = new Cell(x, newYPlus);
+            field.addCoordinates(x, newYPlus, Status.SNAKE);
+        } else if (field.getField(x, newYMinus) == Status.EMPTY) {
+            tail = new Cell(x, newYMinus);
+            field.addCoordinates(x, newYMinus, Status.SNAKE);
         }
         return tail;
     }
 
+    public boolean headCheck(Cell head) {
+        return (head.getX() == -1) || (head.getY() == -1);
+    }
+
     public Player logIn(String name) {
         Player pl = new Player(name);
-        Snake sn = new Snake(getCoordinate(Status.SNAKE), tail, config.getWidthField(), config.getHeightField());
+        Cell head = field.findTheFirstHeadPosition();
+        if (headCheck(head)) {
+            System.out.println("Sorry, there are too many players in this game");
+        }
+        Cell tail = getFirstTail(head);
+        Snake sn = new Snake(head, tail, config.getWidthField(), config.getHeightField());
         userList.put(pl, sn);
         makeFruit();
         return pl;
@@ -132,10 +141,6 @@ public class Game implements Observable {
         return emptySnake.size();
     }
 
-    public void clearEmptySnake() {
-        emptySnake.clear();
-    }
-
     public boolean snakeIsFruitNow(Player player) {
         return snakeIsFruit.get(player);
     }
@@ -180,6 +185,7 @@ public class Game implements Observable {
 
     public void turningSnake(Player player) {
         for (int i = 1; i < userList.get(player).sizeSnake(); ++i) {
+            player.decreaseScores();
             Status status = Status.EMPTY;
             if (Math.random() >= config.getPercentChanceOfTurningIntoFood()) {
                 status = Status.FRUIT;
@@ -207,6 +213,7 @@ public class Game implements Observable {
         for (Map.Entry<Player, Snake> entry : userList.entrySet()) {
             if (player != entry.getKey()) {
                 if (entry.getValue().isBody(head)) {
+                    player.increaseScores();
                     return true;
                 }
             }
@@ -243,6 +250,7 @@ public class Game implements Observable {
             field.delCoordinates(x, y);
             delFruit(head);
             field.addCoordinates(x, y, Status.SNAKE);
+            player.increaseScores();
             makeFruit();
             eat = true;
 

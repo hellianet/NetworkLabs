@@ -1,4 +1,4 @@
-package sample;
+package ru.lanchukovskaya.sample;
 
 import javafx.application.Application;
 import javafx.scene.image.Image;

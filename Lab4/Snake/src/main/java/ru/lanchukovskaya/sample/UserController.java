@@ -1,4 +1,4 @@
-package sample;
+package ru.lanchukovskaya.sample;
 
 import javafx.event.EventHandler;
 import javafx.scene.input.KeyCode;

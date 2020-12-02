@@ -1,4 +1,4 @@
-package sample;
+package ru.lanchukovskaya.sample;
 
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;

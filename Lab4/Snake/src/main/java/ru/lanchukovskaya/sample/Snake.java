@@ -1,4 +1,4 @@
-package sample;
+package ru.lanchukovskaya.sample;
 
 import java.util.ArrayList;
 import java.util.Iterator;

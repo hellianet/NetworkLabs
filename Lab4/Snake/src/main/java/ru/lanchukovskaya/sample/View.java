@@ -1,4 +1,4 @@
-package sample;
+package ru.lanchukovskaya.sample;
 
 import javafx.application.Platform;
 import javafx.geometry.Orientation;
@@ -132,7 +132,7 @@ public class View implements Observer {
     }
 
     public void addNameAndSizeSnake(Player pl) {
-        Label l = new Label(pl.getName() + ": " + userList.get(pl).sizeSnake());
+        Label l = new Label(pl.getName() + ": " + pl.getScores());
         labels.put(pl, l);
         l.setFont(new Font(14));
         labelsGrid.add(l, 0, 0);
@@ -140,7 +140,7 @@ public class View implements Observer {
     }
 
     public Color newColor(Player pl) {
-        Color cl = Color.RED;// Color.rgb((int)(Math.random() % 256), (int)(Math.random() % 256), (int)(Math.random() %256));
+        Color cl = Color.RED;
         colorSnake.put(pl, cl);
         return cl;
     }
@@ -198,7 +198,7 @@ public class View implements Observer {
             if (labels.containsKey(pl)) {
                 if (game.snakeIsEat(pl)) {
 
-                    Platform.runLater(() -> labels.get(pl).setText(pl.getName() + ": " + userList.get(pl).sizeSnake()));
+                    Platform.runLater(() -> labels.get(pl).setText(pl.getName() + ": " + pl.getScores()));
                     addFruitCoordinate();
                 } else {
                     removeTail(pl);

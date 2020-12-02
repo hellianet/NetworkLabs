@@ -1,4 +1,4 @@
-package sample;
+package ru.lanchukovskaya.sample;
 
 public class Cell {
     private int x;
