@@ -1,10 +1,13 @@
 package ru.lanchukovskaya.sample;
 
 import javafx.application.Platform;
+import javafx.geometry.HPos;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -22,6 +25,7 @@ import java.util.Set;
 public class View implements Observer {
 
 
+    private final MenuView menuView;
     private ArrayList<Cell> fruit;
     private Player player;
     private Game game;
@@ -33,12 +37,22 @@ public class View implements Observer {
     private HashMap<Player, Cell> snakeTail;
     private GridPane labelsGrid;
     private ImageView exitButton;
+    private TextField widthGameField;
+    private TextField heightGameField;
+    private TextField timeMove;
+    private TextField countFood;
+    private TextField percentChange;
+    private TextField delayMessage;
+    private TextField nodeTimeout;
+    private Button play;
+    private Button button;
 
-    public View(Game game, Player player, Stage st) {
+    public View(Game game, Player player, MenuView view) {
         this.player = player;
         this.game = game;
-        this.stage = st;
+        this.stage = view.getStage();
         this.game.registerObserver(this);
+        this.menuView = view;
         userList = new HashMap<>();
         fruit = new ArrayList<>();
         labels = new HashMap<>();
@@ -66,12 +80,18 @@ public class View implements Observer {
         int sizeCell = 40;
         int width = sizeCell * game.widthField();
         int sizeLabel = 20;
-        int height = sizeCell * game.heightField() + sizeLabel;
+        int sizeButton = 30;
+        int height = sizeCell * game.heightField() + sizeLabel + sizeButton;
         stage.setWidth(width);
         stage.setHeight(height);
         GridPane gridpane = new GridPane();
         GridPane gp = new GridPane();
         labelsGrid = new GridPane();
+        button = new Button("Exit");
+        button.setStyle("-fx-font: 16 Algerian; -fx-base: #b6e7c9;");
+        Button viewer = new Button("Become a viewer");
+        viewer.setStyle("-fx-font: 16 Algerian; -fx-base: #b6e7c9;");
+
         for (int i = 0; i < game.widthField(); ++i) {
             for (int k = 0; k < game.heightField(); ++k) {
                 Rectangle rectangle = new Rectangle(sizeCell, sizeCell, Color.WHITE);
@@ -81,11 +101,159 @@ public class View implements Observer {
         }
         gp.add(labelsGrid, 0, 0);
         gp.add(gridpane, 0, 1);
+        gp.add(button, 0, 2);
+        GridPane.setHalignment(button, HPos.RIGHT);
+        gp.add(viewer, 0, 2);
+        GridPane.setHalignment(viewer, HPos.LEFT);
+
         gridpane.setGridLinesVisible(true);
         Scene scene = new Scene(gp, width, height);
         stage.setScene(scene);
         stage.sizeToScene();
     }
+
+    public void menu() {
+        GridPane gridpane = new GridPane();
+        GridPane gp = new GridPane();
+        Label newGame = new Label("Create a new game:");
+        newGame.setFont(new Font("Algerian", 20));
+        Label existGame = new Label("Join an existing game:");
+        existGame.setFont(new Font("Algerian", 20));
+
+        makeColumnsAndRows(gridpane);
+
+        gridpane.add(newGame, 0, 0);
+        gridpane.add(existGame, 1, 0);
+
+        makeMarginsForTheLeftSide(gridpane);
+
+        makeTable(gp);
+
+        addDataToTable(gp);
+
+        gridpane.add(gp, 1, 1);
+        Scene scene = new Scene(gridpane, 600, 600);
+        stage.setScene(scene);
+        stage.sizeToScene();
+
+    }
+
+    public Button getPlay() {
+        return play;
+    }
+
+    public Button getButton() {
+        return button;
+    }
+
+    public void makeMarginsForTheLeftSide(GridPane gridpane) {
+        Label width = new Label("Playing field width");
+        widthGameField = new TextField();
+        widthGameField.setPrefColumnCount(1);
+
+        Label height = new Label("Playing field height");
+        heightGameField = new TextField();
+        heightGameField.setPrefColumnCount(1);
+
+        Label time = new Label("Time of one move");
+        timeMove = new TextField();
+        timeMove.setPrefColumnCount(1);
+
+        Label count = new Label("The amount of food per player");
+        countFood = new TextField();
+        countFood.setPrefColumnCount(1);
+
+        Label change = new Label("The percentage of the snake turns into food(0-1)");
+        percentChange = new TextField();
+        percentChange.setPrefColumnCount(1);
+
+        Label delay = new Label("Delay between sending ping messages, in milliseconds");
+        delayMessage = new TextField();
+        delayMessage.setPrefColumnCount(1);
+
+        Label timeout = new Label("Time after which the neighboring node disappeared");
+        nodeTimeout = new TextField();
+        nodeTimeout.setPrefColumnCount(1);
+
+        play = new Button("Play");
+        play.setMaxWidth(Double.MAX_VALUE);
+        play.setStyle("-fx-font: 18 Algerian; -fx-base: #b6e7c9;");
+
+        FlowPane root = new FlowPane(Orientation.VERTICAL, 10, 10, width, widthGameField, height, heightGameField,
+                time, timeMove, count, countFood, change, percentChange, delay, delayMessage, timeout, nodeTimeout, play);
+        root.setAlignment(Pos.CENTER);
+        gridpane.add(root, 0, 1);
+    }
+
+    public void makeColumnsAndRows(GridPane gridpane) {
+        ColumnConstraints column1 = new ColumnConstraints();
+        column1.setPercentWidth(50);
+        gridpane.getColumnConstraints().add(column1);
+        ColumnConstraints column2 = new ColumnConstraints();
+        column2.setPercentWidth(50);
+        gridpane.getColumnConstraints().add(column2);
+
+        RowConstraints row1 = new RowConstraints();
+        row1.setPercentHeight(5);
+        gridpane.getRowConstraints().add(row1);
+
+        RowConstraints row2 = new RowConstraints();
+        row2.setPercentHeight(95);
+        gridpane.getRowConstraints().add(row2);
+
+        gridpane.setGridLinesVisible(true);
+    }
+
+    public void makeTable(GridPane gp) {
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(45);
+        gp.getColumnConstraints().add(col1);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(10);
+        gp.getColumnConstraints().add(col2);
+        ColumnConstraints col3 = new ColumnConstraints();
+        col3.setPercentWidth(25);
+        gp.getColumnConstraints().add(col3);
+
+        RowConstraints r1 = new RowConstraints();
+        r1.setPercentHeight(5);
+        gp.getRowConstraints().add(r1);
+
+        gp.setAlignment(Pos.CENTER);
+        gp.setGridLinesVisible(true);
+
+        Label name = new Label("Name");
+        gp.add(name, 0, 0);
+
+        Label countPlayer = new Label("N");
+        gp.add(countPlayer, 1, 0);
+
+        Label entry = new Label("Entry");
+        gp.add(entry, 2, 0);
+    }
+
+    public void addDataToTable(GridPane gp) {
+
+        int size = 3;
+        for (int i = 1; i <= size; i++) {
+            RowConstraints row = new RowConstraints();
+            row.setPercentHeight(5);
+            gp.getRowConstraints().add(row);
+
+            Button arrow = new Button("Entry");
+            arrow.setMaxWidth(70);
+            arrow.setMaxHeight(15);
+            gp.add(arrow, 2, i);
+
+            Label name = new Label("Kris");
+            gp.add(name, 0, i);
+
+            Label countPlayer = new Label("2");
+            gp.add(countPlayer, 1, i);
+        }
+
+    }
+
 
     public void win() {
         Label end = new Label("Game over");
@@ -150,7 +318,7 @@ public class View implements Observer {
     }
 
     public void addFieldCoordinate(Cell cl) {
-        rects[cl.getX()][cl.getY()].setFill(Color.YELLOW);
+        rects[cl.getX()][cl.getY()].setFill(Color.WHITE);
     }
 
     public void addFruitCoordinate() {
@@ -218,11 +386,11 @@ public class View implements Observer {
                         addFieldCoordinate(game.getEmptySnake(i));
                     }
                 }
-                labels.remove(pl);
                 snakeTail.remove(pl);
                 colorSnake.remove(pl);
             }
         }
+        playersInLabel.removeIf(p -> !players.contains(p));
         addFruitCoordinate();
         check();
     }

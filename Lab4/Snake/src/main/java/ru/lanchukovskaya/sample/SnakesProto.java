@@ -457,7 +457,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Имя игрока (для отображения в интерфейсе)
+     * имя игрока (для отображения в интерфейсе)
      * </pre>
      *
      * <code>required string name = 1;</code>
@@ -468,7 +468,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Имя игрока (для отображения в интерфейсе)
+     * имя игрока (для отображения в интерфейсе)
      * </pre>
      *
      * <code>required string name = 1;</code>
@@ -479,7 +479,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Имя игрока (для отображения в интерфейсе)
+     * имя игрока (для отображения в интерфейсе)
      * </pre>
      *
      * <code>required string name = 1;</code>
@@ -491,7 +491,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Уникальный идентификатор игрока в пределах игры
+     * уникальный идентификатор игрока в пределах игры
      * </pre>
      *
      * <code>required int32 id = 2;</code>
@@ -502,7 +502,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Уникальный идентификатор игрока в пределах игры
+     * уникальный идентификатор игрока в пределах игры
      * </pre>
      *
      * <code>required int32 id = 2;</code>
@@ -547,7 +547,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Порт UDP-сокета игрока
+     * порт UDP-сокета игрока
      * </pre>
      *
      * <code>required int32 port = 4;</code>
@@ -558,7 +558,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Порт UDP-сокета игрока
+     * порт UDP-сокета игрока
      * </pre>
      *
      * <code>required int32 port = 4;</code>
@@ -569,7 +569,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Роль узла в топологии
+     * роль узла в топологии
      * </pre>
      *
      * <code>required .snakes.NodeRole role = 5;</code>
@@ -580,7 +580,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Роль узла в топологии
+     * роль узла в топологии
      * </pre>
      *
      * <code>required .snakes.NodeRole role = 5;</code>
@@ -591,7 +591,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Тип игрока
+     * тип игрока
      * </pre>
      *
      * <code>optional .snakes.PlayerType type = 6 [default = HUMAN];</code>
@@ -602,7 +602,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Тип игрока
+     * тип игрока
      * </pre>
      *
      * <code>optional .snakes.PlayerType type = 6 [default = HUMAN];</code>
@@ -613,7 +613,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Число очков, которые набрал игрок
+     * число очков, которые набрал игрок
      * </pre>
      *
      * <code>required int32 score = 7;</code>
@@ -624,7 +624,7 @@ public final class SnakesProto {
 
     /**
      * <pre>
-     * Число очков, которые набрал игрок
+     * число очков, которые набрал игрок
      * </pre>
      *
      * <code>required int32 score = 7;</code>
@@ -636,7 +636,7 @@ public final class SnakesProto {
 
   /**
    * <pre>
-   * Игрок
+   * игрок
    * </pre>
    * <p>
    * Protobuf type {@code snakes.GamePlayer}

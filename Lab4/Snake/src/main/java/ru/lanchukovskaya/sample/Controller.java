@@ -9,6 +9,7 @@ public class Controller implements Observer {
     private MenuView view;
     private Game game;
     private HashMap<Player, UserController> players;
+    private View userView;
 
     public Controller(MenuView v, Game g) {
         view = v;
@@ -22,15 +23,32 @@ public class Controller implements Observer {
 
             String name = view.getEnterName().getText();
             Player pl = game.logIn(name);
-            View userView = new View(game, pl, view.getStage());
+            userView = new View(game, pl, view);
             UserController userCr = new UserController(userView, game, pl);
             userCr.initEventHandlers();
             players.put(pl, userCr);
+            userView.menu();
+            newGame(userView);
+
+        });
+
+    }
+
+    public void newGame(View userView) {
+        userView.getPlay().addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
             userView.game();
             userView.initialization();
             game.run();
+            exitButton();
         });
+    }
 
+    public void exitButton() {
+        userView.getButton().addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
+            game.exit();
+            view.show();
+            initInputImage();
+        });
     }
 
     @Override

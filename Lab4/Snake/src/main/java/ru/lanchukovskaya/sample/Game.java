@@ -14,6 +14,7 @@ public class Game implements Observable {
     private HashMap<Player, Boolean> snakeIsFruit;
     private ArrayList<Player> isWin;
     private ArrayList<Player> isLose;
+    private Timer timer;
 
     public Game() {
         config = new Config();
@@ -82,7 +83,7 @@ public class Game implements Observable {
     }
 
     public void run() {
-        Timer timer = new Timer();
+        timer = new Timer();
         TimerTask timerTask = new TimerTask() {
             @Override
             public void run() {
@@ -94,7 +95,12 @@ public class Game implements Observable {
                 }
             }
         };
-        timer.schedule(timerTask, 0, 200);
+        timer.schedule(timerTask, 0, 500);
+    }
+
+    public void exit() {
+        userList.clear();
+        timer.cancel();
     }
 
     public Map<Player, Snake> getUserList() {

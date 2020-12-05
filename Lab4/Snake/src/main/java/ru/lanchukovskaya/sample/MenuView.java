@@ -20,6 +20,7 @@ public class MenuView {
 
     public MenuView(Stage stage) {
         this.stage = stage;
+
     }
 
     public Stage getStage() {
@@ -35,8 +36,9 @@ public class MenuView {
         FlowPane root = new FlowPane(Orientation.VERTICAL, 0, 6, label, enterName, input);
         root.setAlignment(Pos.BOTTOM_CENTER);
         root.setBackground(new Background(new BackgroundImage(new Image("menuBackground.jpg", 800, 400, false, false), null, null, null, null)));
-        Scene scene = new Scene(root, 150, 150);
+        Scene scene = new Scene(root, 800, 400);
         stage.setScene(scene);
+        stage.sizeToScene();
     }
 
     public TextField getEnterName() {

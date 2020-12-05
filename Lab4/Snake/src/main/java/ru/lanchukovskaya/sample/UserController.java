@@ -33,7 +33,7 @@ public class UserController {
                 game.makeMove(player, Movement.LEFT);
             }
         };
-        view.getStage().addEventHandler(KeyEvent.KEY_PRESSED, movementHandler);
+        view.getStage().addEventHandler(KeyEvent.KEY_RELEASED, movementHandler);
         view.getExitButton().addEventHandler(MouseEvent.MOUSE_CLICKED, e -> view.exit());
     }
 

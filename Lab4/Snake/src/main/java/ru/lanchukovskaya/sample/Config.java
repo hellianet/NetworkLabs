@@ -4,7 +4,7 @@ public class Config {
 
     private int foodStatic = 1;
     private int foodPerPlayer = 2;
-    private int heightField = 16;
+    private int heightField = 15;
     private int widthField = 15;
     private double percentChanceOfTurningIntoFood = 0.5;
 
