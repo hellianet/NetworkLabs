@@ -6,54 +6,32 @@ import java.util.HashMap;
 
 public class Controller implements Observer {
 
-    private MenuView view;
+    private MenuView menuView;
     private Game game;
     private HashMap<Player, UserController> players;
-    private View userView;
+    private View view;
 
-    public Controller(MenuView v, Game g) {
-        view = v;
-        game = g;
+    public Controller(MenuView v) {
+        menuView = v;
         players = new HashMap<>();
-        game.registerObserver(this);
-    }
-
-    public void initInputImage() {
-        view.getInputImage().addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
-
-            String name = view.getEnterName().getText();
-            Player pl = game.logIn(name);
-            userView = new View(game, pl, view);
-            UserController userCr = new UserController(userView, game, pl);
+        menuView.getInputImage().addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
+            Player pl = new Player(menuView.getEnterName().getText());
+            view = new View(game, pl, menuView);
+            view.menu();
+            UserController userCr = new UserController(view, game, pl);
             userCr.initEventHandlers();
             players.put(pl, userCr);
-            userView.menu();
-            newGame(userView);
-
-        });
-
-    }
-
-    public void newGame(View userView) {
-        userView.getPlay().addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
-            userView.game();
-            userView.initialization();
-            game.run();
-            exitButton();
-        });
-    }
-
-    public void exitButton() {
-        userView.getButton().addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
-            game.exit();
-            view.show();
-            initInputImage();
         });
     }
 
     @Override
     public void update() {
         removeUsers();
+    }
+
+    @Override
+    public void update(SnakesProto.GameState state) {
+
     }
 
     private void removeUsers() {

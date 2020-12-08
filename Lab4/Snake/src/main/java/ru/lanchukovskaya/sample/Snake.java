@@ -18,6 +18,26 @@ public class Snake implements Iterable<Cell> {
         height = h;
     }
 
+    public Snake(List<Cell> snake, Movement movement) {
+        this(snake, movement, Integer.MAX_VALUE, Integer.MAX_VALUE);
+    }
+
+    public Snake(List<Cell> snake, Movement movement, int width, int height) {
+        this.width = width;
+        this.height = height;
+        this.snake = new ArrayList<>(snake.size());
+        this.snake.addAll(snake);
+        prevDir = movement;
+    }
+
+    public void setHeight(int height) {
+        this.height = height;
+    }
+
+    public void setWidth(int width) {
+        this.width = width;
+    }
+
     public Cell getHead() {
         return snake.get(0);
     }

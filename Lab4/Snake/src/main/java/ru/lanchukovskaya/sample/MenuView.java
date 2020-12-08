@@ -23,10 +23,6 @@ public class MenuView {
 
     }
 
-    public Stage getStage() {
-        return stage;
-    }
-
     public void show() {
         Label label = new Label("Enter your name");
         label.setFont(new Font("Algerian", 18));
@@ -47,5 +43,9 @@ public class MenuView {
 
     public ImageView getInputImage() {
         return input;
+    }
+
+    public Stage getStage() {
+        return stage;
     }
 }

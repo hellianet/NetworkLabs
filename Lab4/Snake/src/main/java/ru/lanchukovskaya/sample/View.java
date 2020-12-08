@@ -88,6 +88,10 @@ public class View implements Observer {
         GridPane gp = new GridPane();
         labelsGrid = new GridPane();
         button = new Button("Exit");
+        button.setOnAction(actionEvent -> {
+            game.exit();
+            menuView.show();
+        });
         button.setStyle("-fx-font: 16 Algerian; -fx-base: #b6e7c9;");
         Button viewer = new Button("Become a viewer");
         viewer.setStyle("-fx-font: 16 Algerian; -fx-base: #b6e7c9;");
@@ -176,6 +180,24 @@ public class View implements Observer {
         nodeTimeout.setPrefColumnCount(1);
 
         play = new Button("Play");
+        play.setOnAction(actionEvent -> {
+            try {
+                SnakesProto.GameConfig protoConfig = SnakesProto.GameConfig.newBuilder()
+                        .setDeadFoodProb(Float.parseFloat(percentChange.getText()))
+                        .setHeight(Integer.parseInt(heightGameField.getText()))
+                        .setWidth(Integer.parseInt(widthGameField.getText()))
+                        .setPingDelayMs(Integer.parseInt(delayMessage.getText()))
+                        .setFoodPerPlayer(Integer.parseInt(countFood.getText()))
+                        .setNodeTimeoutMs(Integer.parseInt(nodeTimeout.getText()))
+                        .setStateDelayMs(Integer.parseInt(timeMove.getText()))
+                        .build();
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+            }
+            game.logIn(player);
+            game();
+            initialization();
+        });
         play.setMaxWidth(Double.MAX_VALUE);
         play.setStyle("-fx-font: 18 Algerian; -fx-base: #b6e7c9;");
 
@@ -183,6 +205,8 @@ public class View implements Observer {
                 time, timeMove, count, countFood, change, percentChange, delay, delayMessage, timeout, nodeTimeout, play);
         root.setAlignment(Pos.CENTER);
         gridpane.add(root, 0, 1);
+
+
     }
 
     public void makeColumnsAndRows(GridPane gridpane) {
@@ -342,7 +366,7 @@ public class View implements Observer {
         colorSnake = new HashMap<>();
         snakeTail = new HashMap<>();
         userList = game.getUserList();
-        fruit = game.getFruit();
+        fruit = game.getFruits();
         Set<Player> players = userList.keySet();
         for (Player pl : players) {
             labelsGrid.getColumnConstraints().add(new ColumnConstraints((double) 600 / userList.size()));

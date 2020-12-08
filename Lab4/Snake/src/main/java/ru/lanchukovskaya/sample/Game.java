@@ -2,30 +2,59 @@ package ru.lanchukovskaya.sample;
 
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Game implements Observable {
-    private HashMap<Player, Snake> userList;
-    private ArrayList<Cell> fruit;
-    private ArrayList<Observer> observers;
-    private ArrayList<Cell> emptySnake;
+    private Map<Player, Snake> userList;
+    private List<Cell> fruit;
+    private List<Observer> observers;
+    private List<Cell> emptySnake;
     private Field field;
-    private Config config;
-    private HashMap<Player, Boolean> isEat;
-    private HashMap<Player, Boolean> snakeIsFruit;
-    private ArrayList<Player> isWin;
-    private ArrayList<Player> isLose;
+    private SnakesProto.GameConfig config;
+    private List<Player> isLose;
     private Timer timer;
+    private int stateId = 0;
 
-    public Game() {
-        config = new Config();
-        field = new Field(config.getWidthField(), config.getHeightField());
+    public Game(SnakesProto.GameConfig config) {
+        this.config = config;
+        field = new Field(config.getWidth(), config.getHeight());
         userList = new HashMap<>();
         observers = new ArrayList<>();
         fruit = new ArrayList<>();
-        isEat = new HashMap<>();
-        snakeIsFruit = new HashMap<>();
-        isWin = new ArrayList<>();
         isLose = new ArrayList<>();
+    }
+
+    public Game(SnakesProto.GameState gameState) {
+        this.config = gameState.getConfig();
+        field = new Field(config.getWidth(), config.getHeight());
+        userList = new HashMap<>();
+        observers = new ArrayList<>();
+        fruit = gameState.getFoodsList().stream()
+                .map(ProtoUtils::getCellFromCoord)
+                .peek(cell -> field.addCoordinates(cell.getX(), cell.getY(), Status.FRUIT))
+                .collect(Collectors.toList());
+        gameState.getPlayers().getPlayersList()
+                .forEach(gamePlayer -> {
+                    Player player = new Player(gamePlayer.getName(), gamePlayer.getId());
+                    userList.put(player, null);
+                });
+        for (SnakesProto.GameState.Snake snake : gameState.getSnakesList()) {
+            Snake snakeFromProto = ProtoUtils.getSnakeFromProto(snake);
+            snakeFromProto.setHeight(config.getHeight());
+            snakeFromProto.setWidth(config.getWidth());
+            putSnakeByPlayerId(snakeFromProto, snake.getPlayerId());
+        }
+        isLose = new ArrayList<>();
+
+    }
+
+    private void putSnakeByPlayerId(Snake snakeFromProto, int playerId) {
+        for (Player player : userList.keySet()) {
+            if (player.getId() == playerId) {
+                userList.put(player, snakeFromProto);
+                break;
+            }
+        }
     }
 
     public Cell getCoordinate(Status status) {
@@ -69,34 +98,17 @@ public class Game implements Observable {
         return (head.getX() == -1) || (head.getY() == -1);
     }
 
-    public Player logIn(String name) {
-        Player pl = new Player(name);
+    public void logIn(Player pl) {
         Cell head = field.findTheFirstHeadPosition();
         if (headCheck(head)) {
             System.out.println("Sorry, there are too many players in this game");
         }
         Cell tail = getFirstTail(head);
-        Snake sn = new Snake(head, tail, config.getWidthField(), config.getHeightField());
+        Snake sn = new Snake(head, tail, config.getWidth(), config.getHeight());
         userList.put(pl, sn);
         makeFruit();
-        return pl;
     }
 
-    public void run() {
-        timer = new Timer();
-        TimerTask timerTask = new TimerTask() {
-            @Override
-            public void run() {
-                for (Player pl : userList.keySet()) {
-                    makeMove(pl, userList.get(pl).getPrevDir());
-                }
-                if (userList.size() == 0) {
-                    timer.cancel();
-                }
-            }
-        };
-        timer.schedule(timerTask, 0, 500);
-    }
 
     public void exit() {
         userList.clear();
@@ -107,11 +119,8 @@ public class Game implements Observable {
         return userList;
     }
 
-    public ArrayList<Player> getIsWin() {
-        return isWin;
-    }
 
-    public ArrayList<Player> getIsLose() {
+    public List<Player> getIsLose() {
         return isLose;
     }
 
@@ -131,12 +140,8 @@ public class Game implements Observable {
         return userList.get(player).getTail();
     }
 
-    public ArrayList<Cell> getFruit() {
+    public List<Cell> getFruits() {
         return fruit;
-    }
-
-    public boolean snakeIsEat(Player player) {
-        return isEat.get(player);
     }
 
     public Cell getEmptySnake(int number) {
@@ -147,15 +152,12 @@ public class Game implements Observable {
         return emptySnake.size();
     }
 
-    public boolean snakeIsFruitNow(Player player) {
-        return snakeIsFruit.get(player);
-    }
-
     public int getCountFruit() {
         return fruit.size();
     }
 
-    public void makeFruit() {
+
+    private void makeFruit() {
         while ((field.numOfEmptyElField() > 0) && (fruit.size() < (userList.size() * config.getFoodPerPlayer() + config.getFoodStatic()))) {
             Cell cl = getCoordinate(Status.FRUIT);
             fruit.add(0, cl);
@@ -163,7 +165,7 @@ public class Game implements Observable {
         }
     }
 
-    public boolean snakeAteFruit(Cell head) {
+    private boolean snakeAteFruit(Cell head) {
         for (Cell cell : fruit) {
             if ((head.getX() == cell.getX()) && (head.getY() == cell.getY())) {
                 return true;
@@ -172,12 +174,12 @@ public class Game implements Observable {
         return false;
     }
 
-    public boolean snakeCrashesIntoItself(Cell head, Player player) {
+    private boolean snakeCrashesIntoItself(Cell head, Player player) {
         Snake sn = userList.get(player);
         return sn.isBody(head);
     }
 
-    public void delFruit(Cell head) {
+    private void delFruit(Cell head) {
         fruit.removeIf(
                 cell -> (head.getX() == cell.getX()) && (head.getY() == cell.getY())
         );
@@ -185,15 +187,15 @@ public class Game implements Observable {
 
     public void win(Player player) {
         if ((userList.size() == 1 && field.numOfEmptyElField() == 1) || (userList.size() >= 2 && field.numOfEmptyElField() == 1 && userList.get(player).sizeSnake() > field.countOfElField() / userList.size())) {
-            isWin.add(player);
+            System.out.println("WIN");
         }
     }
 
-    public void turningSnake(Player player) {
+    private void turningSnake(Player player) {
         for (int i = 1; i < userList.get(player).sizeSnake(); ++i) {
             player.decreaseScores();
             Status status = Status.EMPTY;
-            if (Math.random() >= config.getPercentChanceOfTurningIntoFood()) {
+            if (Math.random() >= config.getDeadFoodProb()) {
                 status = Status.FRUIT;
             }
             int x = userList.get(player).getSnakeCoordinate(i).getX();
@@ -201,12 +203,10 @@ public class Game implements Observable {
             field.delCoordinates(x, y);
             field.addCoordinates(x, y, status);
             if (status == Status.FRUIT) {
-                snakeIsFruit.put(player, true);
                 fruit.add(userList.get(player).getSnakeCoordinate(i));
             }
             if (status == Status.EMPTY) {
                 emptySnake = new ArrayList<>();
-                snakeIsFruit.put(player, false);
                 emptySnake.add(userList.get(player).getSnakeCoordinate(i));
             }
             userList.get(player).removeCoordinate(i);
@@ -215,7 +215,7 @@ public class Game implements Observable {
     }
 
 
-    public boolean crashIntoAnotherSnake(Cell head, Player player) {
+    private boolean crashIntoAnotherSnake(Cell head, Player player) {
         for (Map.Entry<Player, Snake> entry : userList.entrySet()) {
             if (player != entry.getKey()) {
                 if (entry.getValue().isBody(head)) {
@@ -227,7 +227,7 @@ public class Game implements Observable {
         return false;
     }
 
-    public void makeMove(Player player, Movement movement) {
+    private void makeMove(Player player, Movement movement) {
         userList.get(player).traffic(movement);
         checkMove(player);
     }
@@ -248,7 +248,6 @@ public class Game implements Observable {
         if ((snakeCrashesIntoItself(head, player) || crashIntoAnotherSnake(head, player))) {
             lose(player);
             isLose.add(player);
-            notifyObservers();
             return;
         }
         boolean eat = false;
@@ -266,9 +265,7 @@ public class Game implements Observable {
             userList.get(player).removeTail();
             field.delCoordinates(tail.getX(), tail.getY());
         }
-        isEat.put(player, eat);
         win(player);
-        notifyObservers();
     }
 
     @Override
@@ -287,4 +284,15 @@ public class Game implements Observable {
             o.update();
         }
     }
+
+    public void makeMove(Map<Player, Movement> movementMap) {
+        movementMap.forEach(this::makeMove);
+        stateId++;
+        notifyObservers();
+    }
+
+    public int getStateId() {
+        return stateId;
+    }
+
 }
