@@ -10,6 +10,4 @@ public interface NodeWithRole {
     void makeMove(Movement movement);
 
     void exit();
-
-    void setGameNode(GameNode gameNode);
 }

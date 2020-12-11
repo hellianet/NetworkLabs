@@ -21,11 +21,14 @@ public class Master implements Observer, NodeWithRole {
     private GameNode gameNode;
     private Player masterPLayer;
     private String currentPlayerName;
+    private long msgSeq = 0;
 
 
-    public Master(SnakesProto.GameConfig gameConfig) {
+    public Master(SnakesProto.GameConfig gameConfig, GameNode gameNode) {
         this.gameConfig = gameConfig;
+        this.gameNode = gameNode;
         game = new Game(gameConfig);
+        game.registerObserver(this);
         registerYourSelf();
         timer = new Timer();
         TimerTask timerTask = new TimerTask() {
@@ -36,13 +39,40 @@ public class Master implements Observer, NodeWithRole {
             }
         };
         timer.schedule(timerTask, 0, gameConfig.getStateDelayMs());
+        startSendAnnouncementMessages();
         checkingPlayersStart();
     }
 
-    public Master(SnakesProto.GameConfig gameConfig, String playerName) {
+    private void startSendAnnouncementMessages() {
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    gameNode.sendMessage(
+                            new Node(InetAddress.getByName("239.192.0.4"), 9192),
+                            SnakesProto.GameMessage.newBuilder()
+                                    .setAnnouncement(SnakesProto.GameMessage.AnnouncementMsg.newBuilder()
+                                            .setCanJoin(true)
+                                            .setConfig(gameConfig)
+                                            .setPlayers(SnakesProto.GamePlayers.newBuilder().addAllPlayers(playerMap.values()))
+                                    )
+                                    .setMsgSeq(new Random().nextInt())
+                                    .build()
+                    );
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        timer.schedule(timerTask, 0, 1000);
+    }
+
+    public Master(SnakesProto.GameConfig gameConfig, String playerName, GameNode gameNode) {
+        this.gameNode = gameNode;
         this.currentPlayerName = playerName;
         this.gameConfig = gameConfig;
         game = new Game(gameConfig);
+        game.registerObserver(this);
         registerYourSelf();
         timer = new Timer();
         TimerTask timerTask = new TimerTask() {
@@ -53,6 +83,7 @@ public class Master implements Observer, NodeWithRole {
             }
         };
         timer.schedule(timerTask, 0, gameConfig.getStateDelayMs());
+        startSendAnnouncementMessages();
         checkingPlayersStart();
     }
 
@@ -62,7 +93,7 @@ public class Master implements Observer, NodeWithRole {
                 .setScore(0)
                 .setId(masterPLayer.getId())
                 .setPort(0)
-                .setIpAddress(null)
+                .setIpAddress("")
                 .setName(masterPLayer.getName())
                 .setRole(SnakesProto.NodeRole.MASTER)
                 .build();
@@ -70,14 +101,16 @@ public class Master implements Observer, NodeWithRole {
         playerMap.put(masterPLayer, gamePlayer);
     }
 
-    public Master(SnakesProto.GameConfig gameConfig, SnakesProto.GameState state) {
+    public Master(SnakesProto.GameConfig gameConfig, SnakesProto.GameState state, GameNode gameNode) {
+        this.gameNode = gameNode;
         this.game = new Game(state);
+        game.registerObserver(this);
         this.timer = new Timer();
         this.gameConfig = gameConfig;
         for (SnakesProto.GamePlayer gamePlayer : state.getPlayers().getPlayersList()) {
             Player player = new Player(gamePlayer.getName(), gamePlayer.getId());
             String playerIpAddress = gamePlayer.getIpAddress();
-            if (playerIpAddress == null) {
+            if (playerIpAddress.isEmpty()) {
                 continue;
             }
             try {
@@ -97,6 +130,7 @@ public class Master implements Observer, NodeWithRole {
             }
         };
         timer.schedule(timerTask, 0, gameConfig.getStateDelayMs());
+        startSendAnnouncementMessages();
         checkingPlayersStart();
     }
 
@@ -110,8 +144,10 @@ public class Master implements Observer, NodeWithRole {
                         )
                         .map(Map.Entry::getKey)
                         .collect(Collectors.toList());
-
-                long deputyLastTime = lastAliveTimeMap.getOrDefault(deputy, (long) 0);
+                long deputyLastTime = 0;
+                if (deputy != null) {
+                    deputyLastTime = lastAliveTimeMap.getOrDefault(deputy, (long) 0);
+                }
                 lastAliveTimeMap.keySet().removeAll(deadPlayers);
                 nodePlayerMap.forEach((node, player) -> {
                     if (deadPlayers.contains(node)) {
@@ -156,6 +192,7 @@ public class Master implements Observer, NodeWithRole {
                 )
                 .build();
         sendGameState(gameState);
+        gameNode.showState(gameState);
     }
 
     @Override
@@ -165,6 +202,9 @@ public class Master implements Observer, NodeWithRole {
 
     private void sendGameState(SnakesProto.GameState gameState) {
         playerMap.values().forEach(gamePlayer -> {
+            if (gamePlayer.getIpAddress().isEmpty()) {
+                return;
+            }
             try {
                 gameNode.sendMessage(
                         new Node(InetAddress.getByName(gamePlayer.getIpAddress()), gamePlayer.getPort()),
@@ -184,6 +224,7 @@ public class Master implements Observer, NodeWithRole {
                         .setState(gameState)
                         .build()
                 )
+                .setMsgSeq(msgSeq++)
                 .build();
     }
 
@@ -235,6 +276,7 @@ public class Master implements Observer, NodeWithRole {
                         .setSenderRole(SnakesProto.NodeRole.MASTER)
                         .setReceiverRole(SnakesProto.NodeRole.DEPUTY)
                         .build())
+                .setMsgSeq(msgSeq++)
                 .build());
     }
 
@@ -294,10 +336,5 @@ public class Master implements Observer, NodeWithRole {
     @Override
     public void makeMove(Movement movement) {
         movementMap.put(masterPLayer, movement);
-    }
-
-    @Override
-    public void setGameNode(GameNode gameNode) {
-        this.gameNode = gameNode;
     }
 }

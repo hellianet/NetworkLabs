@@ -3,21 +3,23 @@ package ru.lanchukovskaya.sample;
 import javafx.event.EventHandler;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
+import javafx.stage.Stage;
 import ru.lanchukovskaya.sample.network.GameNode;
+import ru.lanchukovskaya.sample.network.Node;
 
 public class UserController {
 
     private final GameNode gameNode;
-    private View view;
+    private Stage stage;
     private EventHandler<KeyEvent> movementHandler;
+    private Player player;
 
-    public UserController(View v, GameNode node) {
-        view = v;
+    public UserController(Stage stage, GameNode node) {
+        this.stage = stage;
         gameNode = node;
     }
 
-    public void initEventHandlers() {
+    private void initEventHandlers() {
         movementHandler = keyEvent -> {
             if (keyEvent.getCode().equals(KeyCode.UP)) {
                 gameNode.makeMove(Movement.UP);
@@ -32,11 +34,25 @@ public class UserController {
                 gameNode.makeMove(Movement.LEFT);
             }
         };
-        view.getStage().addEventHandler(KeyEvent.KEY_RELEASED, movementHandler);
-        view.getExitButton().addEventHandler(MouseEvent.MOUSE_CLICKED, e -> view.exit());
+        stage.addEventHandler(KeyEvent.KEY_RELEASED, movementHandler);
+    }
+
+    public void startGame(Node master) {
+        initEventHandlers();
+        gameNode.joinToGame(master, player.getName());
     }
 
     public void removeEventHandlers() {
-        view.getStage().removeEventHandler(KeyEvent.KEY_PRESSED, movementHandler);
+        stage.removeEventHandler(KeyEvent.KEY_PRESSED, movementHandler);
+    }
+
+    public void registerPlayer(Player player) {
+        this.player = player;
+    }
+
+    public void startGame(SnakesProto.GameConfig protoConfig) {
+        initEventHandlers();
+        gameNode.setConfig(protoConfig);
+        gameNode.startGame(player.getName());
     }
 }

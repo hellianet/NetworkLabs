@@ -1,9 +1,8 @@
 package ru.lanchukovskaya.sample.network;
 
-import ru.lanchukovskaya.sample.Movement;
 import ru.lanchukovskaya.sample.Observable;
 import ru.lanchukovskaya.sample.Observer;
-import ru.lanchukovskaya.sample.SnakesProto;
+import ru.lanchukovskaya.sample.*;
 
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -13,7 +12,7 @@ import java.util.*;
 
 public class GameNode implements Observable {
 
-    private final SnakesProto.GameConfig gameConfig;
+    private SnakesProto.GameConfig gameConfig;
     private final AnnouncementMessagesReceiver announcementMessagesReceiver;
     private DatagramSocket socket;
     private Sender sender;
@@ -28,6 +27,7 @@ public class GameNode implements Observable {
     private List<Observer> observers = new ArrayList<>();
     private Thread threadForSend;
     private Thread threadForReceiving;
+    private View view;
 
 
     public GameNode(SnakesProto.GameConfig gameConfig, SnakesProto.NodeRole role, int port) {
@@ -43,6 +43,10 @@ public class GameNode implements Observable {
         announcementMessagesReceiver = new AnnouncementMessagesReceiver("239.192.0.4", 9192, this);
         changeRole(role);
         startAllThreads();
+    }
+
+    public void setView(View view) {
+        this.view = view;
     }
 
     private void startAllThreads() {
@@ -90,11 +94,13 @@ public class GameNode implements Observable {
     }
 
     private SnakesProto.GameMessage generatePingMessage() {
-        return SnakesProto.GameMessage.newBuilder().setPing(SnakesProto.GameMessage.PingMsg.newBuilder().build()).build();
+        return SnakesProto.GameMessage.newBuilder().setPing(SnakesProto.GameMessage.PingMsg.newBuilder().build())
+                .setMsgSeq(new Random().nextInt())
+                .build();
     }
 
     public void startGame(String playerName) {
-        currentNode = new Master(gameConfig, playerName);
+        currentNode = new Master(gameConfig, playerName, this);
     }
 
     public void joinToGame(Node node, String playerName) {
@@ -107,6 +113,7 @@ public class GameNode implements Observable {
     private SnakesProto.GameMessage generateJoinMessage(String playerName) {
         return SnakesProto.GameMessage.newBuilder()
                 .setJoin(SnakesProto.GameMessage.JoinMsg.newBuilder().setName(playerName).build())
+                .setMsgSeq(new Random().nextInt())
                 .build();
     }
 
@@ -116,18 +123,17 @@ public class GameNode implements Observable {
         }
         this.currentNodeRole = nodeRole;
         currentNode = createNodeByRole(nodeRole, gameConfig);
-        currentNode.setGameNode(this);
     }
 
     private NodeWithRole createNodeByRole(SnakesProto.NodeRole nodeRole, SnakesProto.GameConfig gameConfig) {
         switch (nodeRole) {
             case MASTER:
-                return new Master(gameConfig);
+                return new Master(gameConfig, this);
             case NORMAL:
             case DEPUTY:
-                return new Normal(gameConfig);
+                return new Normal(gameConfig, this);
         }
-        return new Normal(gameConfig);
+        return new Normal(gameConfig, this);
     }
 
     public void becomeMaster() {
@@ -135,7 +141,7 @@ public class GameNode implements Observable {
             currentNode.exit();
             for (SnakesProto.GamePlayer gamePlayer : currentGameState.getPlayers().getPlayersList()) {
                 String playerIpAddress = gamePlayer.getIpAddress();
-                if (playerIpAddress == null) {
+                if (playerIpAddress.isEmpty()) {
                     continue;
                 }
                 try {
@@ -162,8 +168,7 @@ public class GameNode implements Observable {
     }
 
     public void changeRole(SnakesProto.NodeRole role, SnakesProto.GameState state) {
-        currentNode = new Master(gameConfig, state);
-        currentNode.setGameNode(this);
+        currentNode = new Master(gameConfig, state, this);
         master = null;
     }
 
@@ -212,6 +217,7 @@ public class GameNode implements Observable {
 
     public void showState(SnakesProto.GameState state) {
         this.currentGameState = state;
+        view.update(state);
         notifyObservers();
     }
 
@@ -223,7 +229,11 @@ public class GameNode implements Observable {
         return lastMasterTime;
     }
 
-    public void showAnnouncementMessages(Set<SnakesProto.GameMessage.AnnouncementMsg> announcementMsgs) {
-        //TODO view output announcement messages
+    public void showAnnouncementMessages(Map<Node, SnakesProto.GameMessage.AnnouncementMsg> announcementMsgs) {
+        view.addDataToTable(announcementMsgs);
+    }
+
+    public void setConfig(SnakesProto.GameConfig config) {
+        this.gameConfig = config;
     }
 }

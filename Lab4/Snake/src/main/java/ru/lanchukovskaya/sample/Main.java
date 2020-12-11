@@ -6,9 +6,10 @@ import javafx.stage.Stage;
 import ru.lanchukovskaya.sample.network.GameNode;
 
 public class Main extends Application {
+    private static int port = 5666;
 
     public static void main(String[] args) {
-
+        port = Integer.parseInt(args[0]);
         Application.launch(args);
     }
 
@@ -23,10 +24,9 @@ public class Main extends Application {
         stage.setHeight(height);
 
         SnakesProto.GameConfig build = SnakesProto.GameConfig.newBuilder().setWidth(15).setHeight(15).build();
-        GameNode gameNode = new GameNode(build, SnakesProto.NodeRole.MASTER, 2000);
-        MenuView v = new MenuView(stage);
-        v.show();
-        Controller con = new Controller(v);
+        GameNode gameNode = new GameNode(build, SnakesProto.NodeRole.NORMAL, port);
+        View view = new View(stage, gameNode);
+        view.mainMenu();
         stage.show();
     }
 }

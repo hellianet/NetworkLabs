@@ -10,22 +10,23 @@ import java.util.TimerTask;
 public class Normal implements NodeWithRole {
 
     private final Timer timer;
+    private final GameNode gameNode;
+    private SnakesProto.GameState lastState;
 
-    public Normal(SnakesProto.GameConfig gameConfig) {
+
+    public Normal(SnakesProto.GameConfig gameConfig, GameNode gameNode) {
+        this.gameNode = gameNode;
         timer = new Timer();
         TimerTask timerTask = new TimerTask() {
             @Override
             public void run() {
-                if (gameNode.getLastMasterAliveTime() - System.currentTimeMillis() > gameConfig.getNodeTimeoutMs()) {
-                    gameNode.becomeMaster();
+                if (Normal.this.gameNode.getLastMasterAliveTime() - System.currentTimeMillis() > gameConfig.getNodeTimeoutMs()) {
+                    Normal.this.gameNode.becomeMaster();
                 }
             }
         };
         timer.schedule(timerTask, 0, gameConfig.getNodeTimeoutMs());
     }
-
-    private GameNode gameNode;
-    private SnakesProto.GameState lastState;
 
 
     @Override
@@ -81,10 +82,5 @@ public class Normal implements NodeWithRole {
     @Override
     public void exit() {
         timer.cancel();
-    }
-
-    @Override
-    public void setGameNode(GameNode gameNode) {
-        this.gameNode = gameNode;
     }
 }

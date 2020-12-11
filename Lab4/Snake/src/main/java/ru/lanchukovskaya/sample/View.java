@@ -10,30 +10,26 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import ru.lanchukovskaya.sample.network.GameNode;
+import ru.lanchukovskaya.sample.network.Node;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 
 public class View implements Observer {
 
 
-    private final MenuView menuView;
-    private ArrayList<Cell> fruit;
-    private Player player;
-    private Game game;
-    private Stage stage;
-    private Map<Player, Snake> userList;
     private Rectangle[][] rects;
-    private HashMap<Player, Label> labels;
-    private HashMap<Player, Color> colorSnake;
+    private HashMap<SnakesProto.GamePlayer, Label> labels;
     private HashMap<Player, Cell> snakeTail;
     private GridPane labelsGrid;
     private ImageView exitButton;
@@ -45,80 +41,55 @@ public class View implements Observer {
     private TextField delayMessage;
     private TextField nodeTimeout;
     private Button play;
-    private Button button;
+    private Button gameExitButton;
+    private GridPane mainWindowPane = new GridPane();
+    private int sizeCell;
+    private Stage stage;
+    private TextField enterName;
+    private ImageView input;
+    private final UserController userCr;
+    private GridPane gpTable;
 
-    public View(Game game, Player player, MenuView view) {
-        this.player = player;
-        this.game = game;
-        this.stage = view.getStage();
-        this.game.registerObserver(this);
-        this.menuView = view;
-        userList = new HashMap<>();
-        fruit = new ArrayList<>();
+    public View(Stage stage, GameNode gameNode) {
+        this.stage = stage;
         labels = new HashMap<>();
-        rects = new Rectangle[game.widthField()][game.heightField()];
         exitButton = new ImageView(new Image("exitButton.png", 180, 45, false, false));
+        exitButton.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> exit());
+        gameNode.setView(this);
+        userCr = new UserController(stage, gameNode);
     }
 
-    private void check() {
-        if (game.getIsLose().contains(player)) {
-            lose();
-        }
-
-        if (game.getIsWin().contains(player)) {
-            win();
-        }
-
-    }
 
     public ImageView getExitButton() {
         return exitButton;
     }
 
 
-    public void game() {
-        int sizeCell = 40;
-        int width = sizeCell * game.widthField();
-        int sizeLabel = 20;
-        int sizeButton = 30;
-        int height = sizeCell * game.heightField() + sizeLabel + sizeButton;
-        stage.setWidth(width);
-        stage.setHeight(height);
-        GridPane gridpane = new GridPane();
-        GridPane gp = new GridPane();
-        labelsGrid = new GridPane();
-        button = new Button("Exit");
-        button.setOnAction(actionEvent -> {
-            game.exit();
-            menuView.show();
+    public void mainMenu() {
+        Label label = new Label("Enter your name");
+        label.setFont(new Font("Algerian", 18));
+        enterName = new TextField();
+        enterName.setPrefColumnCount(1);
+        input = new ImageView(new Image("playButton.png", 180, 45, false, false));
+        input.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
+            userCr.registerPlayer(new Player(enterName.getText()));
+            menu();
         });
-        button.setStyle("-fx-font: 16 Algerian; -fx-base: #b6e7c9;");
-        Button viewer = new Button("Become a viewer");
-        viewer.setStyle("-fx-font: 16 Algerian; -fx-base: #b6e7c9;");
-
-        for (int i = 0; i < game.widthField(); ++i) {
-            for (int k = 0; k < game.heightField(); ++k) {
-                Rectangle rectangle = new Rectangle(sizeCell, sizeCell, Color.WHITE);
-                gridpane.add(rectangle, i, k);
-                rects[i][k] = rectangle;
-            }
-        }
-        gp.add(labelsGrid, 0, 0);
-        gp.add(gridpane, 0, 1);
-        gp.add(button, 0, 2);
-        GridPane.setHalignment(button, HPos.RIGHT);
-        gp.add(viewer, 0, 2);
-        GridPane.setHalignment(viewer, HPos.LEFT);
-
-        gridpane.setGridLinesVisible(true);
-        Scene scene = new Scene(gp, width, height);
+        FlowPane root = new FlowPane(Orientation.VERTICAL, 0, 6, label, enterName, input);
+        root.setAlignment(Pos.BOTTOM_CENTER);
+        root.setBackground(new Background(new BackgroundImage(new Image("menuBackground.jpg", 800, 400, false, false), null, null, null, null)));
+        Scene scene = new Scene(root, 800, 400);
         stage.setScene(scene);
         stage.sizeToScene();
     }
 
+    public TextField getEnterName() {
+        return enterName;
+    }
+
     public void menu() {
         GridPane gridpane = new GridPane();
-        GridPane gp = new GridPane();
+        gpTable = new GridPane();
         Label newGame = new Label("Create a new game:");
         newGame.setFont(new Font("Algerian", 20));
         Label existGame = new Label("Join an existing game:");
@@ -131,26 +102,25 @@ public class View implements Observer {
 
         makeMarginsForTheLeftSide(gridpane);
 
-        makeTable(gp);
+        makeTable(gpTable);
 
-        addDataToTable(gp);
-
-        gridpane.add(gp, 1, 1);
+        gridpane.add(gpTable, 1, 1);
         Scene scene = new Scene(gridpane, 600, 600);
         stage.setScene(scene);
         stage.sizeToScene();
 
     }
 
+
     public Button getPlay() {
         return play;
     }
 
-    public Button getButton() {
-        return button;
+    public Button getGameExitButton() {
+        return gameExitButton;
     }
 
-    public void makeMarginsForTheLeftSide(GridPane gridpane) {
+    private void makeMarginsForTheLeftSide(GridPane gridpane) {
         Label width = new Label("Playing field width");
         widthGameField = new TextField();
         widthGameField.setPrefColumnCount(1);
@@ -191,16 +161,14 @@ public class View implements Observer {
                         .setNodeTimeoutMs(Integer.parseInt(nodeTimeout.getText()))
                         .setStateDelayMs(Integer.parseInt(timeMove.getText()))
                         .build();
+                initGameWindow(protoConfig);
+                userCr.startGame(protoConfig);
             } catch (NumberFormatException e) {
                 e.printStackTrace();
             }
-            game.logIn(player);
-            game();
-            initialization();
         });
         play.setMaxWidth(Double.MAX_VALUE);
         play.setStyle("-fx-font: 18 Algerian; -fx-base: #b6e7c9;");
-
         FlowPane root = new FlowPane(Orientation.VERTICAL, 10, 10, width, widthGameField, height, heightGameField,
                 time, timeMove, count, countFood, change, percentChange, delay, delayMessage, timeout, nodeTimeout, play);
         root.setAlignment(Pos.CENTER);
@@ -209,7 +177,7 @@ public class View implements Observer {
 
     }
 
-    public void makeColumnsAndRows(GridPane gridpane) {
+    private void makeColumnsAndRows(GridPane gridpane) {
         ColumnConstraints column1 = new ColumnConstraints();
         column1.setPercentWidth(50);
         gridpane.getColumnConstraints().add(column1);
@@ -228,7 +196,7 @@ public class View implements Observer {
         gridpane.setGridLinesVisible(true);
     }
 
-    public void makeTable(GridPane gp) {
+    private void makeTable(GridPane gp) {
         ColumnConstraints col1 = new ColumnConstraints();
         col1.setPercentWidth(45);
         gp.getColumnConstraints().add(col1);
@@ -256,24 +224,36 @@ public class View implements Observer {
         gp.add(entry, 2, 0);
     }
 
-    public void addDataToTable(GridPane gp) {
+    public void addDataToTable(Map<Node, SnakesProto.GameMessage.AnnouncementMsg> listOfGames) {
 
-        int size = 3;
-        for (int i = 1; i <= size; i++) {
+        int i = 1;
+        for (Map.Entry<Node, SnakesProto.GameMessage.AnnouncementMsg> entry : listOfGames.entrySet()) {
+            Node node = entry.getKey();
+            SnakesProto.GameMessage.AnnouncementMsg announcementMsg = entry.getValue();
+            List<SnakesProto.GamePlayer> playersList = announcementMsg.getPlayers().getPlayersList();
+            SnakesProto.GamePlayer master = playersList.stream()
+                    .filter(gamePlayer ->
+                            gamePlayer.getRole() == SnakesProto.NodeRole.MASTER)
+                    .findFirst()
+                    .orElseThrow();
             RowConstraints row = new RowConstraints();
             row.setPercentHeight(5);
-            gp.getRowConstraints().add(row);
+            gpTable.getRowConstraints().add(row);
 
             Button arrow = new Button("Entry");
+            arrow.setOnAction(actionEvent -> {
+                userCr.startGame(node);
+            });
             arrow.setMaxWidth(70);
             arrow.setMaxHeight(15);
-            gp.add(arrow, 2, i);
+            gpTable.add(arrow, 2, i);
 
-            Label name = new Label("Kris");
-            gp.add(name, 0, i);
+            Label name = new Label(master.getName());
+            gpTable.add(name, 0, i);
 
-            Label countPlayer = new Label("2");
-            gp.add(countPlayer, 1, i);
+            Label countPlayer = new Label(String.valueOf(playersList.size()));
+            gpTable.add(countPlayer, 1, i);
+            i++;
         }
 
     }
@@ -323,100 +303,86 @@ public class View implements Observer {
         stage.close();
     }
 
-    public void addNameAndSizeSnake(Player pl) {
-        Label l = new Label(pl.getName() + ": " + pl.getScores());
+    private void addNameAndSizeSnake(SnakesProto.GamePlayer pl) {
+        Label l = new Label(pl.getName() + ": " + pl.getScore());
         labels.put(pl, l);
         l.setFont(new Font(14));
         labelsGrid.add(l, 0, 0);
         labelsGrid.setGridLinesVisible(true);
     }
 
-    public Color newColor(Player pl) {
-        Color cl = Color.RED;
-        colorSnake.put(pl, cl);
-        return cl;
-    }
 
-    public void removeTail(Player pl) {
-        rects[snakeTail.get(pl).getX()][snakeTail.get(pl).getY()].setFill(Color.WHITE);
-    }
-
-    public void addFieldCoordinate(Cell cl) {
-        rects[cl.getX()][cl.getY()].setFill(Color.WHITE);
-    }
-
-    public void addFruitCoordinate() {
-        for (int i = 0; i < game.getCountFruit(); ++i) {
-            rects[fruit.get(i).getX()][fruit.get(i).getY()].setFill(Color.BLUE);
+    private void repaintField(SnakesProto.GameState gameState) {
+        List<SnakesProto.GameState.Coord> snakesList = gameState.getSnakesList()
+                .stream()
+                .flatMap(snake -> snake.getPointsList().stream())
+                .collect(Collectors.toList());
+        List<SnakesProto.GameState.Coord> foodsList = gameState.getFoodsList();
+        for (int y = 0; y < gameState.getConfig().getHeight(); y++) {
+            for (int x = 0; x < gameState.getConfig().getWidth(); x++) {
+                SnakesProto.GameState.Coord coord = SnakesProto.GameState.Coord.newBuilder().setY(y).setX(x).build();
+                Color color = Color.WHITE;
+                if (snakesList.contains(coord)) {
+                    color = Color.RED;
+                } else if (foodsList.contains(coord)) {
+                    color = Color.BLUE;
+                }
+                rects[y][x].setFill(color);
+            }
         }
     }
 
-
-    public void addSnakeCoordinate(Player pl, Color cl) {
-        if (game.getHeadSnake(pl).getX() < game.widthField() && game.getHeadSnake(pl).getX() >= 0 && game.getHeadSnake(pl).getY() < game.heightField() && game.getHeadSnake(pl).getY() >= 0) {
-            rects[game.getHeadSnake(pl).getX()][game.getHeadSnake(pl).getY()].setFill(cl);
-            rects[game.getTailSnake(pl).getX()][game.getTailSnake(pl).getY()].setFill(cl);
-            snakeTail.put(pl, game.getTailSnake(pl));
-
+    private void initField(SnakesProto.GameConfig config) {
+        sizeCell = 40;
+        GridPane fieldPane = new GridPane();
+        rects = new Rectangle[config.getHeight()][config.getWidth()];
+        for (int y = 0; y < config.getHeight(); ++y) {
+            for (int x = 0; x < config.getWidth(); ++x) {
+                Rectangle rectangle = new Rectangle(sizeCell, sizeCell, Color.WHITE);
+                fieldPane.add(rectangle, x, y);
+                rects[y][x] = rectangle;
+            }
         }
-
+        fieldPane.setGridLinesVisible(true);
+        mainWindowPane.add(fieldPane, 0, 1);
     }
 
-    public void initialization() {
-        colorSnake = new HashMap<>();
-        snakeTail = new HashMap<>();
-        userList = game.getUserList();
-        fruit = game.getFruits();
-        Set<Player> players = userList.keySet();
-        for (Player pl : players) {
-            labelsGrid.getColumnConstraints().add(new ColumnConstraints((double) 600 / userList.size()));
-            addNameAndSizeSnake(pl);
-            addSnakeCoordinate(pl, newColor(pl));
-        }
-        addFruitCoordinate();
-    }
+    private void initGameWindow(SnakesProto.GameConfig config) {
+        initField(config);
+        labelsGrid = new GridPane();
+        gameExitButton = new Button("Exit");
+        gameExitButton.setOnAction(actionEvent -> {
+            mainMenu();
+        });
+        gameExitButton.setStyle("-fx-font: 16 Algerian; -fx-base: #b6e7c9;");
+        Button viewer = new Button("Become a viewer");
+        viewer.setStyle("-fx-font: 16 Algerian; -fx-base: #b6e7c9;");
 
+        mainWindowPane.add(labelsGrid, 0, 0);
+        mainWindowPane.add(gameExitButton, 0, 2);
+        GridPane.setHalignment(gameExitButton, HPos.RIGHT);
+        mainWindowPane.add(viewer, 0, 2);
+        GridPane.setHalignment(viewer, HPos.LEFT);
+
+        int sizeLabel = 20;
+        int sizeButton = 30;
+        int width = sizeCell * config.getWidth();
+        int height = sizeCell * config.getHeight() + sizeLabel + sizeButton;
+        Scene scene = new Scene(mainWindowPane, width, height);
+        stage.setScene(scene);
+        stage.sizeToScene();
+    }
 
     @Override
     public void update() {
-        display();
 
     }
 
-    public void display() {
-        Set<Player> players = userList.keySet();
-        Set<Player> playersInLabel = labels.keySet();
-        for (Player pl : players) {
-            if (labels.containsKey(pl)) {
-                if (game.snakeIsEat(pl)) {
-
-                    Platform.runLater(() -> labels.get(pl).setText(pl.getName() + ": " + pl.getScores()));
-                    addFruitCoordinate();
-                } else {
-                    removeTail(pl);
-
-                }
-                addSnakeCoordinate(pl, colorSnake.get(pl));
-            } else {
-                addNameAndSizeSnake(pl);
-                addSnakeCoordinate(pl, newColor(pl));
-            }
+    @Override
+    public void update(SnakesProto.GameState gameState) {
+        if (rects == null) {
+            initGameWindow(gameState.getConfig());
         }
-
-        for (Player pl : playersInLabel) {
-            if (!players.contains(pl)) {
-                if (!game.snakeIsFruitNow(pl)) {
-                    for (int i = 0; i < game.getSizeEmptySnake(); ++i) {
-                        addFieldCoordinate(game.getEmptySnake(i));
-                    }
-                }
-                snakeTail.remove(pl);
-                colorSnake.remove(pl);
-            }
-        }
-        playersInLabel.removeIf(p -> !players.contains(p));
-        addFruitCoordinate();
-        check();
+        repaintField(gameState);
     }
-
 }

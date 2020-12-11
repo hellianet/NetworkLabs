@@ -6,7 +6,7 @@ import java.util.List;
 
 public class Snake implements Iterable<Cell> {
     private List<Cell> snake;
-    private Movement prevDir = Movement.LEFT;
+    private Movement prevDir = Movement.DOWN;
     private int width;
     private int height;
 

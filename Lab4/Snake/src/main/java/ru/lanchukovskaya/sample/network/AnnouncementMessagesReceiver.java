@@ -8,11 +8,11 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.UnknownHostException;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AnnouncementMessagesReceiver {
-    private final Set<SnakesProto.GameMessage.AnnouncementMsg> announcementMsgSet = new LinkedHashSet<>();
+    private final Map<Node, SnakesProto.GameMessage.AnnouncementMsg> announcementMsgSet = new HashMap<>();
     private final InetAddress multicastAddress;
     private final int port;
     private final Thread checkerThread;
@@ -41,13 +41,14 @@ public class AnnouncementMessagesReceiver {
         return () -> {
             try (MulticastSocket socket = new MulticastSocket(port)) {
                 socket.joinGroup(multicastAddress);
-                byte[] buffer = new byte[1024];
+
                 while (!Thread.currentThread().isInterrupted()) {
-                    DatagramPacket datagramPacket = new DatagramPacket(buffer, 1024);
+                    DatagramPacket datagramPacket = new DatagramPacket(new byte[4096], 4096);
                     socket.receive(datagramPacket);
                     Node sender = new Node(datagramPacket.getAddress(), datagramPacket.getPort());
-                    SnakesProto.GameMessage.AnnouncementMsg announcementMsg = SnakesProto.GameMessage.AnnouncementMsg.parseFrom(buffer);
-                    announcementMsgSet.add(announcementMsg);
+                    SnakesProto.GameMessage message = SnakesProto.GameMessage.parseFrom(datagramPacket.getData());
+                    announcementMsgSet.put(sender, message.getAnnouncement());
+                    shareAnnouncementMessages();
                 }
             } catch (InvalidProtocolBufferException e) {
                 e.printStackTrace();
@@ -58,8 +59,8 @@ public class AnnouncementMessagesReceiver {
     }
 
 
-    public void shareAnnouncementMessages() {
-        Set<SnakesProto.GameMessage.AnnouncementMsg> copyOfSet = Set.copyOf(announcementMsgSet);
+    private void shareAnnouncementMessages() {
+        Map<Node, SnakesProto.GameMessage.AnnouncementMsg> copyOfSet = Map.copyOf(announcementMsgSet);
         announcementMsgSet.clear();
         gameNode.showAnnouncementMessages(copyOfSet);
     }

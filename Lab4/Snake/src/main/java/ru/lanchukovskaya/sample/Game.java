@@ -12,8 +12,9 @@ public class Game implements Observable {
     private Field field;
     private SnakesProto.GameConfig config;
     private List<Player> isLose;
-    private Timer timer;
     private int stateId = 0;
+    private Map<Cell, Status> CellFormerSnake = new HashMap();
+
 
     public Game(SnakesProto.GameConfig config) {
         this.config = config;
@@ -109,12 +110,6 @@ public class Game implements Observable {
         makeFruit();
     }
 
-
-    public void exit() {
-        userList.clear();
-        timer.cancel();
-    }
-
     public Map<Player, Snake> getUserList() {
         return userList;
     }
@@ -202,18 +197,22 @@ public class Game implements Observable {
             int y = userList.get(player).getSnakeCoordinate(i).getY();
             field.delCoordinates(x, y);
             field.addCoordinates(x, y, status);
+            Cell newCell = new Cell(x, y);
             if (status == Status.FRUIT) {
+                CellFormerSnake.put(newCell, status);
                 fruit.add(userList.get(player).getSnakeCoordinate(i));
             }
             if (status == Status.EMPTY) {
-                emptySnake = new ArrayList<>();
-                emptySnake.add(userList.get(player).getSnakeCoordinate(i));
+                CellFormerSnake.put(newCell, status);
             }
             userList.get(player).removeCoordinate(i);
         }
         userList.get(player).removeCoordinate(0);
     }
 
+    public Map<Cell, Status> getCellFormerSnake() {
+        return CellFormerSnake;
+    }
 
     private boolean crashIntoAnotherSnake(Cell head, Player player) {
         for (Map.Entry<Player, Snake> entry : userList.entrySet()) {
@@ -286,6 +285,11 @@ public class Game implements Observable {
     }
 
     public void makeMove(Map<Player, Movement> movementMap) {
+        userList.forEach((player, snake) -> {
+            if (!movementMap.containsKey(player)) {
+                makeMove(player, snake.getPrevDir());
+            }
+        });
         movementMap.forEach(this::makeMove);
         stateId++;
         notifyObservers();
