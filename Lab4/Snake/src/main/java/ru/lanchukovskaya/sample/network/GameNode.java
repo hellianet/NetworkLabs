@@ -207,13 +207,13 @@ public class GameNode implements Observable {
     }
 
     public void exit() {
+        socket.close();
         currentNode.exit();
         threadForReceiving.interrupt();
         threadForSend.interrupt();
         timer.cancel();
         announcementMessagesReceiver.exit();
     }
-
 
     public void showState(SnakesProto.GameState state) {
         this.currentGameState = state;

@@ -30,7 +30,6 @@ public class View implements Observer {
 
     private Rectangle[][] rects;
     private HashMap<SnakesProto.GamePlayer, Label> labels;
-    private HashMap<Player, Cell> snakeTail;
     private GridPane labelsGrid;
     private ImageView exitButton;
     private TextField widthGameField;
@@ -54,16 +53,13 @@ public class View implements Observer {
         this.stage = stage;
         labels = new HashMap<>();
         exitButton = new ImageView(new Image("exitButton.png", 180, 45, false, false));
-        exitButton.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> exit());
+        exitButton.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> {
+            exit();
+            gameNode.exit();
+        });
         gameNode.setView(this);
         userCr = new UserController(stage, gameNode);
     }
-
-
-    public ImageView getExitButton() {
-        return exitButton;
-    }
-
 
     public void mainMenu() {
         Label label = new Label("Enter your name");
@@ -81,10 +77,6 @@ public class View implements Observer {
         Scene scene = new Scene(root, 800, 400);
         stage.setScene(scene);
         stage.sizeToScene();
-    }
-
-    public TextField getEnterName() {
-        return enterName;
     }
 
     public void menu() {
@@ -109,15 +101,6 @@ public class View implements Observer {
         stage.setScene(scene);
         stage.sizeToScene();
 
-    }
-
-
-    public Button getPlay() {
-        return play;
-    }
-
-    public Button getGameExitButton() {
-        return gameExitButton;
     }
 
     private void makeMarginsForTheLeftSide(GridPane gridpane) {
@@ -293,10 +276,6 @@ public class View implements Observer {
             stage.sizeToScene();
         });
 
-    }
-
-    public Stage getStage() {
-        return stage;
     }
 
     public void exit() {
